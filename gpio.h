@@ -8,73 +8,98 @@
 
 /* Connections:
  *
- * Motor PHASE_A: green wire
- * Motor PHASE_B: yellow wire
+ * Motor PHASE_A: yellow wire
  * Motor PHASE_B: blue wire
+ * Motor PHASE_C: green wire
  *
  *
- * PIN				| IN/OUT| Works?|Function
+ * PIN				        | IN/OUT| Works?|Function
  * ----------------------------------------------------------
  *
- * ??		  		| out	| yes	| Bridge_C-High
- * ??		  		| out	| yes	| Bridge_B-High
- * ??		  		| out	| yes	| Bridge_A-High
- * ??		 		| out	| yes	| Bridge_C-Low (active low)
- * ??		 		| out	| yes	| Bridge_B-Low (active low)
- * ??		 		| out	| yes	| Bridge_A-Low (active low)
+ * PA3  (ADC12_IN3)   | in  | ??  | current_phase_A
+ * PA2  (ADC12_IN2)   | in  | ??  | current_phase_C
  *
- * ??		 		| in	| yes	| Hall_sensor_A
- * ??		 		| in	| yes	| Hall_sensor_B
- * ??		 		| in	| yes	| Hall_sensor_C
-
- * ??		 		| in	| ??	| BMF_signal-Yellow_A
- * ??		 		| in	| ??	| BMF_signal-Green_B
- * ??		 		| in	| ??	| BMF_signal-Blue_C
+ * PA4  (ADC12_IN4)   | in  | ??  | battery_voltage
  *
- * ??				| in	| yes	| Battery_voltage_signal
- * ??				| in	| yes	| Motor_current_signal
+ * PB12               | in  | yes | Hall_sensor_A
+ * PB13               | in  | yes | Hall_sensor_B
+ * PB14               | in  | yes | Hall_sensor_C
  *
- * ??				| in/out| ??	| IMU_MPU6050-SCL
- * ??				| in/out| ??	| IMU_MPU6050-SDA
+ * PB6  (I2C1_SCL)    | in/out| ??  | IMU_MPU6050-SCL
+ * PB7  (I2C1_SDA)    | in/out| ??  | IMU_MPU6050-SDA
  *
- * ??	 			| out	| yes	| LED_1-battery_indicator (active low: float to disable and GND to turn on)
- * ??	 			| out	| yes	| LED_2-battery_indicator (active low: float to disable and GND to turn on)
- * ??	 			| out	| yes	| LED_3-battery_indicator (active low: float to disable and GND to turn on)
- * ??	 			| out	| yes	| LED_4-battery_indicator (active low: float to disable and GND to turn on)
- * ??	 			| out 	| yes	| LED-power_switcher	  (active low: float to disable and GND to turn on)
+ * PB1  (TIM3_CH4)    | out | ??  | phase_A-HO_LO
+ * PB0  (TIM3_CH3)    | out | ??  | phase_B-HO_LO
+ * PA6  (TIM3_CH1)    | out | ??  | phase_C-HO_LO
+ * PB2                | out | ??  | phase_A-shutdown
+ * PA7                | out | ??  | phase_B-shutdown
+ * PA5                | out | ??  | phase_C-shutdown
  *
- * PB3	 			| out	| yes	| Buzzer 		  (active high: push pull)
- * ??	 			| in	| yes	| PS_signal 		  (calibrate_wheel)
+ * PA9  (USART1_TX)   | out | ??  | usart_tx
+ * PA10 (USART1_RX)   | out | ??  | usart_rx
+ *
+ * PA8                | out | ??  | buzzer      (active high: push pull)
+ *
+ * PB15               | out | ??  | LED_1-battery_indicator (active low: float to disable and GND to turn on)
+ * PA11               | out | ??  | LED_2-battery_indicator (active low: float to disable and GND to turn on)
+ * PA12               | out | ??  | LED_3-battery_indicator (active low: float to disable and GND to turn on)
+ * PB5                | out | ??  | LED_4-battery_indicator (active low: float to disable and GND to turn on)
  *
  */
 
 #ifndef GPIO_H
 #define GPIO_H
 
-#include "stm32f10x_gpio.h"
+#define CURRENT_PHASE_A__PIN      GPIO_Pin_3#define LED_1_BATTERY_INDICATOR__PIN        GPIO_Pin_15
+#define LED_1_BATTERY_INDICATOR__PORT       GPIOB
+#define CURRENT_PHASE_A__PORT     GPIOA
+#define CURRENT_PHASE_C__PIN      GPIO_Pin_2
+#define CURRENT_PHASE_C__PORT     GPIOA
 
-#define LED_1_BATTERY_INDICATOR
-#define LED_2_BATTERY_INDICATOR
-#define LED_3_BATTERY_INDICATOR
-#define LED_4_BATTERY_INDICATOR
-#define LED_POWER_SWITCHER
+#define BATTERY_VOLTAGE__PIN      GPIO_Pin_4
+#define BATTERY_VOLTAGE__PORT     GPIOA
 
-#define HALL_SENSOR_A
-#define HALL_SENSOR_B
-#define HALL_SENSOR_C
+#define HALL_SENSOR_A__PIN        GPIO_Pin_12
+#define HALL_SENSOR_A__PORT       GPIOB
+#define HALL_SENSOR_B__PIN        GPIO_Pin_13
+#define HALL_SENSOR_B__PORT       GPIOB
+#define HALL_SENSOR_C__PIN        GPIO_Pin_14
+#define HALL_SENSOR_C__PORT       GPIOB
 
-#define BRIDGE_A_HIGH
-#define BRIDGE_B_HIGH
-#define BRIDGE_C_HIGH
-#define BRIDGE_A_LOW
-#define BRIDGE_B_LOW
-#define BRIDGE_C_LOW
+#define MPU6050_SCL__PIN          GPIO_Pin_6
+#define MPU6050_SCL__PORT         GPIOB
+#define MPU6050_SDA__PIN          GPIO_Pin_7
+#define MPU6050_SDA__PORT         GPIOB
 
-#define BUZZER				GPIO_Pin_3
-#define PS_SIGNAL
-#define BATTERY_VOLTAGE_SIGNAL
-#define MOTOR_CURRENT_SIGNAL
+#define PHASE_A_HO_LO__PIN        GPIO_Pin_1
+#define PHASE_A_HO_LO__PORT       GPIOB
+#define PHASE_B_HO_LO__PIN        GPIO_Pin_2
+#define PHASE_B_HO_LO__PORT       GPIOB
+#define PHASE_C_HO_LO__PIN        GPIO_Pin_6
+#define PHASE_C_HO_LO__PORT       GPIOA
+#define PHASE_A_SHUTDOWN__PIN     GPIO_Pin_2
+#define PHASE_A_SHUTDOWN__PORT    GPIOB
+#define PHASE_B_SHUTDOWN__PIN     GPIO_Pin_7
+#define PHASE_B_SHUTDOWN__PORT    GPIOA
+#define PHASE_C_SHUTDOWN__PIN     GPIO_Pin_5
+#define PHASE_C_SHUTDOWN__PORT    GPIOA
 
+#define USART_TX__PIN             GPIO_Pin_9
+#define USART_TX__PORT            GPIOA
+#define USART_RX__PIN             GPIO_Pin_10
+#define USART_RX__PORT            GPIOA
+
+#define BUZZER__PIN               GPIO_Pin_8
+#define BUZZER__PORT              GPIOA
+
+#define LED_1_BATTERY_INDICATOR__PIN        GPIO_Pin_15
+#define LED_1_BATTERY_INDICATOR__PORT       GPIOB
+#define LED_2_BATTERY_INDICATOR__PIN        GPIO_Pin_11
+#define LED_2_BATTERY_INDICATOR__PORT       GPIOA
+#define LED_3_BATTERY_INDICATOR__PIN        GPIO_Pin_12
+#define LED_3_BATTERY_INDICATOR__PORT       GPIOA
+#define LED_4_BATTERY_INDICATOR__PIN        GPIO_Pin_5
+#define LED_5_BATTERY_INDICATOR__PORT       GPIOB
 
 void gpio_init (void);
 

@@ -18,11 +18,11 @@ void buzzer_init (void)
 
 void buzzer_on (void)
 {
-  GPIO_ResetBits(GPIOB, BUZZER);
+  GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 }
 
 void buzzer_off (void)
 {
-  GPIO_SetBits(GPIOB, BUZZER);
+  GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 }
 

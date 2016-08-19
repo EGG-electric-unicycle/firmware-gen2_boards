@@ -1,54 +1,62 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    Copyright (C) 2015 Joerg Hoener;
+    Copyright (C) 2015 Jorge Pinto;
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-        http://www.apache.org/licenses/LICENSE-2.0
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ch.h"
-#include "hal.h"
-#include "chprintf.h"
-#include "memstreams.h"
-BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
+#include "stm32f10x.h"
+#include "gpio.h"
+#include "main.h"
 
-/*
- * Application entry point.
- */
+static unsigned int _ms;
+
+void delay_ms (unsigned int ms)
+{
+  _ms = 1;
+  while (ms >= _ms) ;
+}
+
+void SysTick_Handler(void) // runs every 1ms
+{
+  // for delay_ms ()
+  _ms++;
+}
+
+void initialize (void)
+{
+  /* Setup SysTick Timer for 1 millisecond interrupts, also enables Systick and Systick-Interrupt */
+  if (SysTick_Config(SystemCoreClock / 1000))
+  {
+    /* Capture error */
+    while (1);
+  }
+
+  gpio_init (); // configure pins just after PWM init
+  buzzer_init ();
+}
+
 int main(void)
 {
-  /*
-   * System initializations.
-   * - HAL initialization, this also initializes the configured device drivers
-   *   and performs the board-specific initializations.
-   * - Kernel initialization, the main() function becomes a thread and the
-   *   RTOS is active.
-   */
-  halInit();
-  chSysInit();
+  initialize ();
 
-  /*
-   * Activates the serial driver 1 using the driver default configuration.
-   * PA9(TX) and PA10(RX) are routed to USART1.
-   */
-  sdStart(&SD1, NULL);
-
-  /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state, when the button is
-   * pressed the test procedure is launched.
-   */
   while (1)
   {
-	  chprintf(chp, "Hello world\n\r");
-	  chThdSleepMilliseconds(1000);
+     delay_ms (1000);
+     buzzer_on ();
+     delay_ms (1000);
+     buzzer_off ();
   }
 }
+
