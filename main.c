@@ -20,28 +20,28 @@
 #include "gpio.h"
 #include "main.h"
 
-static unsigned int _ms;
-
-void delay_ms (unsigned int ms)
-{
-  _ms = 1;
-  while (ms >= _ms) ;
-}
-
-void SysTick_Handler(void) // runs every 1ms
-{
-  // for delay_ms ()
-  _ms++;
-}
+//static unsigned int _ms;
+//
+//void delay_ms (unsigned int ms)
+//{
+//  _ms = 1;
+//  while (ms >= _ms) ;
+//}
+//
+//void SysTick_Handler(void) // runs every 1ms
+//{
+//  // for delay_ms ()
+//  _ms++;
+//}
 
 void initialize (void)
 {
-  /* Setup SysTick Timer for 1 millisecond interrupts, also enables Systick and Systick-Interrupt */
-  if (SysTick_Config(SystemCoreClock / 1000))
-  {
-    /* Capture error */
-    while (1);
-  }
+//  /* Setup SysTick Timer for 1 millisecond interrupts, also enables Systick and Systick-Interrupt */
+//  if (SysTick_Config(SystemCoreClock / 1000))
+//  {
+//    /* Capture error */
+//    while (1);
+//  }
 
   gpio_init (); // configure pins just after PWM init
   buzzer_init ();
@@ -53,10 +53,11 @@ int main(void)
 
   while (1)
   {
-     delay_ms (1000);
+//     delay_ms (1000);
      buzzer_on ();
-     delay_ms (1000);
      buzzer_off ();
+//     delay_ms (1000);
+//     buzzer_off ();
   }
 }
 
