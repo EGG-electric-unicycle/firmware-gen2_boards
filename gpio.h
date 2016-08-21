@@ -99,7 +99,7 @@
 #define LED_3_BATTERY_INDICATOR__PIN        GPIO_Pin_12
 #define LED_3_BATTERY_INDICATOR__PORT       GPIOA
 #define LED_4_BATTERY_INDICATOR__PIN        GPIO_Pin_5
-#define LED_5_BATTERY_INDICATOR__PORT       GPIOB
+#define LED_4_BATTERY_INDICATOR__PORT       GPIOB
 
 void gpio_init (void);
 
