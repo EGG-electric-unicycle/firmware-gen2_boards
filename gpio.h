@@ -38,7 +38,7 @@
  * PA9  (USART1_TX)   | out | ??  | usart_tx
  * PA10 (USART1_RX)   | out | ??  | usart_rx
  *
- * PA8                | out | ??  | buzzer      (active high: push pull)
+ * PA8                | out | yes | buzzer      (active high: push pull)
  *
  * PB15               | out | ??  | LED_1-battery_indicator (active low: float to disable and GND to turn on)
  * PA11               | out | ??  | LED_2-battery_indicator (active low: float to disable and GND to turn on)

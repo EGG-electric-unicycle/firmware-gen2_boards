@@ -79,9 +79,6 @@ void SetSysClockTo64(void)
 
 void initialize (void)
 {
-  SetSysClockTo64(); //configure clock to 64 MHz (max possible speed)
-    SystemCoreClockUpdate();
-
   /* Setup SysTick Timer for 1 millisecond interrupts, also enables Systick and Systick-Interrupt */
   if (SysTick_Config(SystemCoreClock / 1000))
   {
