@@ -40,11 +40,14 @@ OPT = 0
 # -mfix-cortex-m3-ldrd should be enabled by default for Cortex M3.
 # CFLAGS -H show header files
 AFLAGS  = -I -Ispl/CMSIS -Ispl/inc -c -g -mcpu=cortex-m3 -mthumb
-CFLAGS  = -I./ -I./spl/CMSIS -I./spl/CMSIS/inc -I./spl/inc -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -c -fno-common -O$(OPT) -g -mcpu=cortex-m3 -mthumb #-ffunction-sections -fdata-sections 
+CFLAGS  = -I./ -I./spl/CMSIS -I./spl/CMSIS/inc -I./spl/inc -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -c -fno-common -O$(OPT) -g -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections 
 # Need following option for LTO as LTO will treat retarget functions as
 # unused without following option
 CFLAGS+ = -fno-builtin
-LFLAGS  = -Tstm32_flash.ld -L/usr/lib/gcc/arm-none-eabi/4.9.3/armv7-m -lgcc -lm -nostartfiles -lnosys -mcpu=cortex-m3 -mthumb # -Wl,--gc-sections
+LFLAGS  = -Tstm32_flash.ld -L/usr/lib/gcc/arm-none-eabi/4.9.3/armv7-m -lgcc -lm -nostartfiles -lnosys -mcpu=cortex-m3 -mthumb -Wl,--gc-sections
+#LFLAGS += --specs=nano.specs # to use newlib nano
+#LFLAGS += -u _printf_float # newlib nano printf use floats
+#LFLAGS += -u _scanf_float # newlib nano scanf use floats
 CPFLAGS = -Obinary 
 ODFLAGS = -S
 

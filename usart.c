@@ -7,7 +7,7 @@
  */
 
 #include "stm32f10x.h"
-#include "stdio.h"
+#include "stm32f10x_usart.h"
 
 void usart1_init(void)
 {
