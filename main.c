@@ -1,20 +1,10 @@
 /*
-    Copyright (C) 2015 Joerg Hoener;
-    Copyright (C) 2015 Jorge Pinto;
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * EGG Electric Unicycle firmware
+ *
+ * Copyright (C) Casainho, 2015, 2106.
+ *
+ * Released under the GPL License, Version 3
+ */
 
 #include "stm32f10x.h"
 #include "gpio.h"
@@ -88,18 +78,19 @@ void initialize (void)
 
   gpio_init (); // configure pins just after PWM init
   buzzer_init ();
+  usart1_init ();
 }
 
 int main(void)
 {
   initialize ();
 
+  char string [] = "test uart\n";
+
   while (1)
   {
      delay_ms (1000);
-     buzzer_on ();
-     delay_ms (1000);
-     buzzer_off ();
+     usart1_send_str (string);
   }
 }
 

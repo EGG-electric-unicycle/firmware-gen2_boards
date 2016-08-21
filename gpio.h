@@ -1,7 +1,7 @@
 /*
- * Generic Electric Unicycle firmware
+ * EGG Electric Unicycle firmware
  *
- * Copyright (C) Casainho, 2015, 2016.
+ * Copyright (C) Casainho, 2015, 2106.
  *
  * Released under the GPL License, Version 3
  */
@@ -21,9 +21,9 @@
  *
  * PA4  (ADC12_IN4)   | in  | ??  | battery_voltage
  *
- * PB12               | in  | yes | Hall_sensor_A
- * PB13               | in  | yes | Hall_sensor_B
- * PB14               | in  | yes | Hall_sensor_C
+ * PB12               | in  | ??  | Hall_sensor_A
+ * PB13               | in  | ??  | Hall_sensor_B
+ * PB14               | in  | ??  | Hall_sensor_C
  *
  * PB6  (I2C1_SCL)    | in/out| ??  | IMU_MPU6050-SCL
  * PB7  (I2C1_SDA)    | in/out| ??  | IMU_MPU6050-SDA

@@ -1,7 +1,7 @@
 /*
- * Generic Electric Unicycle firmware
+ * EGG Electric Unicycle firmware
  *
- * Copyright (C) Casainho, 2015.
+ * Copyright (C) Casainho, 2015, 2106.
  *
  * Released under the GPL License, Version 3
  */
@@ -27,4 +27,14 @@ void gpio_init (void)
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
   GPIO_Init(BUZZER__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = USART_RX__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+  GPIO_Init(USART_RX__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = USART_TX__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(USART_TX__PORT, &GPIO_InitStructure);
 }
