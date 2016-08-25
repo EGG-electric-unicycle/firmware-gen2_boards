@@ -73,7 +73,7 @@
 
 #define PHASE_A_HO_LO__PIN        GPIO_Pin_1
 #define PHASE_A_HO_LO__PORT       GPIOB
-#define PHASE_B_HO_LO__PIN        GPIO_Pin_2
+#define PHASE_B_HO_LO__PIN        GPIO_Pin_0
 #define PHASE_B_HO_LO__PORT       GPIOB
 #define PHASE_C_HO_LO__PIN        GPIO_Pin_6
 #define PHASE_C_HO_LO__PORT       GPIOA

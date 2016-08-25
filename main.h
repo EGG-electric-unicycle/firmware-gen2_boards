@@ -13,7 +13,6 @@
 // lower number has higher priority
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
 #define TIM2_HALL_SENSORS_PRIORITY		1
-#define	TIM1_UP_PWM_PRIORITY			2
 #define	TIM4_PRIORITY				3
 #define	TIM3_PRIORITY				4
 
@@ -23,8 +22,18 @@
 #define OVER_MAX_CURRENT 	2
 #define OVER_CURRENT 		3
 
-//#define USART1_DEBUG
-//#define DAC_DEBUG
+// battery voltage: 60V input = 2.35V at ADC input
+
+// phase current ADC voltage input 0 amps = 2.49V
+// Voltage measured values:
+//  4.7A | 2.58V
+//  2.8A | 2.54V
+//    0A | 2.49V
+// -2.8A | 2.45V
+// -4.7A | 2.4V
+// about 20mv for each 1A
+
+#define K_ADC_VOLTAGE 161 // amplified 100k
 
 // Motor
 #define MOTOR_MAX_CURRENT	1 // Define max motor current (used on adc.c)
@@ -36,5 +45,7 @@
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);
 void printDouble(double v, int decimalDigits);
+
+
 
 #endif /* _MAIN_H_ */

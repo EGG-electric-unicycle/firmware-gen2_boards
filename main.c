@@ -11,7 +11,6 @@
 #include "main.h"
 #include "stdio.h"
 #include "leds.h"
-#include "fix16.h"
 
 static unsigned int _ms;
 
@@ -36,9 +35,12 @@ void initialize (void)
     while (1);
   }
 
+  pwm_init ();
   gpio_init (); // configure pins just after PWM init
   buzzer_init ();
   usart1_init ();
+  adc_init ();
+
 }
 
 int main(void)
@@ -51,37 +53,24 @@ int main(void)
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
-  int int_a = 10000;
-  int int_b = 2;
-
-  float float_a = 10000;
-  float float_b = 1.01;
-
-  fix16_t fix_a = fix16_from_float (float_a);
-  fix16_t fix_b = fix16_from_float (float_b);
+  unsigned int value;
 
   while (1)
   {
-     delay_ms (100);
+    enable_phase_a ();
+    enable_phase_b ();
+    set_pwm_phase_a (500);
+    set_pwm_phase_b (2303 - 500);
 
-     led1_on ();
-     int_a = (int_a / int_b) + 10;
-     int_a = (int_a * int_b) + 10;
-     led1_off ();
+    delay_ms (100);
 
-     led2_on ();
-     float_a = float_a / ((float) int_a) + 10;
-     float_a = float_a * ((float) int_a) + 10;
-     led2_off ();
+    value = (adc_get_phase_a_current_value () >> 0);
+    printf("adc phase a: %d\n", value);
+    //printf("voltage adc phase a: %d\n\n", ((value * K_ADC_VOLTAGE) / 100));
 
-     led3_on ();
-     fix_a = fix16_div (fix_a, fix_b);
-     fix_a = fix16_mul (fix_a, fix_b);
-     led3_off ();
-
-     printf("int_a: %d\n", int_a);
-     printf("float_a: %f\n", float_a);
-     printf("fix_a: %f\n", fix16_to_float (fix_a));
+    value = (adc_get_phase_c_current_value () >> 0);
+    printf("adc phase c: %d\n", value);
+    //printf("voltage adc phase c: %d\n\n", ((value * K_ADC_VOLTAGE) / 100));
   }
 }
 

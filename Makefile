@@ -45,8 +45,8 @@ CFLAGS  = -I./ -I./spl/CMSIS -I./spl/CMSIS/inc -I./spl/inc -I./libfixmath -DSTM3
 # unused without following option
 CFLAGS+ = -fno-builtin
 LFLAGS  = -Tstm32_flash.ld -L/usr/lib/gcc/arm-none-eabi/4.9.3/armv7-m -lgcc -lm -nostartfiles -lnosys -mcpu=cortex-m3 -mthumb -Wl,--gc-sections
-LFLAGS += --specs=nano.specs # to use newlib nano
-LFLAGS += -u _printf_float # newlib nano printf use floats
+#LFLAGS += --specs=nano.specs # to use newlib nano
+#LFLAGS += -u _printf_float # newlib nano printf use floats
 #LFLAGS += -u _scanf_float # newlib nano scanf use floats
 CPFLAGS = -Obinary 
 ODFLAGS = -S
