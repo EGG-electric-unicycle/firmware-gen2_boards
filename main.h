@@ -22,9 +22,16 @@
 #define OVER_MAX_CURRENT 	2
 #define OVER_CURRENT 		3
 
-// battery voltage: 60V input = 2.35V at ADC input
+// Battery voltage
+// voltage measured values:
+//  20V | 0.75V
+//  30V | 1.12V
+//  40V | 1.50V
+//  50V | 1.88V
+//  60V | 2.25V
+// about 38mv for each 1V
 
-// phase current ADC voltage input 0 amps = 2.49V
+// Phase current
 // Voltage measured values:
 //  4.7A | 2.58V
 //  2.8A | 2.54V
