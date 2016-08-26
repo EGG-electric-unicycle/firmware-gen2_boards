@@ -12,9 +12,8 @@
 // Define for the NVIC IRQChannel Preemption Priority
 // lower number has higher priority
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
-#define TIM2_HALL_SENSORS_PRIORITY		1
-#define	TIM4_PRIORITY				3
-#define	TIM3_PRIORITY				4
+#define HALL_SENSORS_PRIORITY			1
+#define	TIM2_PRIORITY				2
 
 // State machine
 #define COAST			0
@@ -33,12 +32,12 @@
 
 // Phase current
 // Voltage measured values:
-//  4.7A | 2.58V
-//  2.8A | 2.54V
-//    0A | 2.49V
-// -2.8A | 2.45V
-// -4.7A | 2.4V
-// about 20mv for each 1A
+//  4.7A | 1.77V
+//  2.8A | 1.74V
+//    0A | 1.71V
+// -2.8A | 1.68V
+// -4.7A | 1.65V
+// about 12.7mv for each 1A
 
 #define K_ADC_VOLTAGE 161 // amplified 100k
 
