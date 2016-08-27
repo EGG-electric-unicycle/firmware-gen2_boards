@@ -37,8 +37,8 @@ void initialize (void)
 
 //  TIM2_init ();
   gpio_init ();
-  adc_init ();
-//  pwm_init ();
+//  adc_init ();
+  pwm_init ();
 //  buzzer_init ();
   usart1_bluetooth_init ();
   hall_sensor_init ();
@@ -58,10 +58,16 @@ int main(void)
 
   unsigned int value;
 
+  enable_phase_a ();
+  enable_phase_b ();
+  enable_phase_c ();
+
   while (1)
   {
 
     delay_ms (500);
+
+    motor_set_duty_cycle (100);
 
 //    balance_controller ();
 

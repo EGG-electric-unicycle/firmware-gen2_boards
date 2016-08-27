@@ -9,7 +9,7 @@
 #ifndef _HALL_SENSOR_H_
 #define _HALL_SENSOR_H_
 
-#define EXTI15_10_IRQHandler HALL_SENSORS_INTERRUPT
+//#define HALL_SENSORS_INTERRUPT EXTI15_10_IRQHandler
 
 void hall_sensor_init (void);
 unsigned int get_hall_sensors_us (void);

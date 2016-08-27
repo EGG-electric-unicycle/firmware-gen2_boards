@@ -91,48 +91,6 @@ void apply_duty_cycle (void)
   set_pwm_phase_c (value);
 }
 
-void commutation_AB (void)
-{
-  svm_table_index_a = 26;
-  svm_table_index_b = 2;
-  svm_table_index_c = 14;
-}
-
-void commutation_AC (void)
-{
-  svm_table_index_a = 20;
-  svm_table_index_b = 32;
-  svm_table_index_c = 8;
-}
-
-void commutation_BC (void)
-{
-  svm_table_index_a = 14;
-  svm_table_index_b = 26;
-  svm_table_index_c = 2;
-}
-
-void commutation_BA (void)
-{
-  svm_table_index_a = 8;
-  svm_table_index_b = 20;
-  svm_table_index_c = 32;
-}
-
-void commutation_CA (void)
-{
-  svm_table_index_a = 2;
-  svm_table_index_b = 14;
-  svm_table_index_c = 26;
-}
-
-void commutation_CB (void)
-{
-  svm_table_index_a = 32;
-  svm_table_index_b = 8;
-  svm_table_index_c = 20;
-}
-
 void svm_table_index_dec (void)
 {
   if (svm_table_index_a > 0) svm_table_index_a--;
@@ -150,7 +108,7 @@ void commutation_disable (void)
   TIM_CtrlPWMOutputs (TIM1, DISABLE); // PWM Output Disable
 }
 
-unsigned int get_current_stator_angle (void)
+void commutate (void)
 {
   #define HALL_SENSORS_MASK (HALL_SENSOR_A__PIN | HALL_SENSOR_B__PIN | HALL_SENSOR_C__PIN)
 
@@ -161,44 +119,46 @@ unsigned int get_current_stator_angle (void)
 
 //  if (_direction == RIGHT)
 //  {
-//    // IDENTIFY the sector from hall sensors signals
-//    //
-//    //       cba
-//    //  00000001 == 1
-//    //  00000011 == 3
-//    //  00000010 == 2
-//    //  00000110 == 6
-//    //  00000100 == 4
-//    //  00000101 == 5
-
+    // the next sequence was obtained experimentaly
     switch (hall_sensors)
     {
-      case 1: // right 1, 3, 2, 5, 6, 4
-	return  0;
+      case 8192:
+	svm_table_index_a = 26;
+	svm_table_index_b = 2;
+	svm_table_index_c = 14;
       break;
 
-      case 2:
-	return  60;
+      case 24576:
+	svm_table_index_a = 20;
+	svm_table_index_b = 32;
+	svm_table_index_c = 8;
       break;
 
-      case 3:
-	return 120;
+      case 16384:
+	svm_table_index_a = 14;
+	svm_table_index_b = 26;
+	svm_table_index_c = 2;
       break;
 
-      case 4:
-      	return 180;
+      case 20480:
+	svm_table_index_a = 8;
+	svm_table_index_b = 20;
+	svm_table_index_c = 32;
       break;
 
-      case 5:
-      	return 240;
+      case 4096:
+	svm_table_index_a = 2;
+	svm_table_index_b = 14;
+	svm_table_index_c = 26;
       break;
 
-      case 6:
-      	return 300;
+      case 12288:
+	svm_table_index_a = 32;
+	svm_table_index_b = 8;
+	svm_table_index_c = 20;
       break;
 
       default:
-	return 0;
       break;
     }
 //  }
@@ -232,47 +192,7 @@ unsigned int get_current_stator_angle (void)
 //    }
 //  }
 
-  return 0;
-}
-
-void commutate (void)
-{
-  volatile unsigned int current_stator_angle;
-
-  current_stator_angle = get_current_stator_angle ();
-
-//  switch (current_stator_angle)
-//  {
-//    case 0:
-//    commutation_AB ();
-//    break;
-//
-//    case 60:
-//    commutation_AC ();
-//    break;
-//
-//    case 120:
-//    commutation_BC ();
-//    break;
-//
-//    case 180:
-//    commutation_BA ();
-//    break;
-//
-//    case 240:
-//    commutation_CA ();
-//    break;
-//
-//    case 300:
-//    commutation_CB ();
-//    break;
-//
-//    default:
-//    commutation_disable ();
-//    break;
-//  }
-//
-//  apply_duty_cycle ();
+    apply_duty_cycle ();
 }
 
 void commutate_timer (void)

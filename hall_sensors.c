@@ -9,6 +9,7 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 #include "stm32f10x_tim.h"
+#include "hall_sensors.h"
 #include "main.h"
 #include "gpio.h"
 #include "stdio.h"
@@ -66,14 +67,14 @@ void hall_sensor_init (void)
   NVIC_Init(&NVIC_InitStructure);
 }
 
-void HALL_SENSORS_INTERRUPT (void)
+void EXTI15_10_IRQHandler (void)
 {
   if (EXTI_GetITStatus(EXTI_Line12) != RESET ||
       EXTI_GetITStatus(EXTI_Line13) != RESET ||
       EXTI_GetITStatus(EXTI_Line14) != RESET
       )
   {
-//    commutate ();
+    commutate ();
 
     EXTI_ClearITPendingBit(EXTI_Line12);
     EXTI_ClearITPendingBit(EXTI_Line13);
