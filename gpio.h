@@ -65,6 +65,7 @@
 #define HALL_SENSOR_B__PORT       GPIOB
 #define HALL_SENSOR_C__PIN        GPIO_Pin_14
 #define HALL_SENSOR_C__PORT       GPIOB
+#define HALL_SENSORS__PORT        GPIOB
 
 #define MPU6050_SCL__PIN          GPIO_Pin_6
 #define MPU6050_SCL__PORT         GPIOB

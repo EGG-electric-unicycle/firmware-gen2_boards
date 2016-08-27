@@ -35,15 +35,15 @@ void initialize (void)
     while (1);
   }
 
-  TIM2_init ();
-  pwm_init ();
-  gpio_init (); // configure pins just after PWM init
-  buzzer_init ();
-  usart1_init ();
+//  TIM2_init ();
+  gpio_init ();
   adc_init ();
+//  pwm_init ();
+//  buzzer_init ();
+  usart1_bluetooth_init ();
   hall_sensor_init ();
-  MPU6050_I2C_Init ();
-  MPU6050_Initialize ();
+//  MPU6050_I2C_Init ();
+//  MPU6050_Initialize ();
 }
 
 int main(void)
@@ -63,14 +63,14 @@ int main(void)
 
     delay_ms (500);
 
-    balance_controller ();
+//    balance_controller ();
 
 //    value = (adc_get_phase_a_current_value ());
 //    printf("adc phase a: %d\n", value);
 //    //printf("voltage adc phase a: %d\n\n", ((value * K_ADC_VOLTAGE) / 100));
 //
-//    value = (adc_get_phase_c_current_value ());
-//    printf("adc phase c: %d\n", value);
+    value = (adc_get_phase_c_current_value ());
+    printf("adc phase c: %d\n", value);
 //
 //    value = (adc_get_battery_voltage_value ());
 //    printf("battery voltage: %d\n", value);

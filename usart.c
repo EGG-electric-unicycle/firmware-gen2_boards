@@ -7,10 +7,24 @@
  */
 
 #include "stm32f10x.h"
+#include "gpio.h"
 #include "stm32f10x_usart.h"
 
-void usart1_init(void)
+void usart1_bluetooth_init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  // USART for bluetooth module pins
+  GPIO_InitStructure.GPIO_Pin = USART_RX__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+  GPIO_Init(USART_RX__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = USART_TX__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(USART_TX__PORT, &GPIO_InitStructure);
+
   /* Enable GPIO clock */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO, ENABLE);
 

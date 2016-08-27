@@ -23,6 +23,40 @@ void PWM_PERIOD_INTERRUPT (void)
 
 void pwm_init (void)
 {
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  // mosfets drivers pins
+  GPIO_InitStructure.GPIO_Pin = PHASE_A_SHUTDOWN__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_Init(PHASE_A_SHUTDOWN__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = PHASE_A_HO_LO__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(PHASE_A_HO_LO__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = PHASE_B_SHUTDOWN__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_Init(PHASE_B_SHUTDOWN__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = PHASE_B_HO_LO__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(PHASE_B_HO_LO__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = PHASE_C_SHUTDOWN__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_Init(PHASE_C_SHUTDOWN__PORT, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = PHASE_C_HO_LO__PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(PHASE_C_HO_LO__PORT, &GPIO_InitStructure);
+
+
   RCC_APB1PeriphClockCmd (RCC_APB1Periph_TIM3, ENABLE);
 
   // reset TIM3
