@@ -56,7 +56,7 @@ int main(void)
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
-  unsigned int value;
+  int value;
 
   enable_phase_a ();
   enable_phase_b ();
@@ -68,12 +68,13 @@ int main(void)
     delay_ms (100);
 
     value = adc_get_potentiometer_value ();
+    value = value - 2048;
     value = value * 1000;
-    value = value / 4096;
-
-    value = value / 4;
+    value = value / 2048;
 
     motor_set_duty_cycle (value);
+    printf("pot: %d\n", value);
+
 
 //    balance_controller ();
 
@@ -81,7 +82,7 @@ int main(void)
 //    printf("adc phase a: %d\n", value);
 //    //printf("voltage adc phase a: %d\n\n", ((value * K_ADC_VOLTAGE) / 100));
 //
-    printf("pot: %d\n", value);
+
 //
 //    value = (adc_get_battery_voltage_value ());
 //    printf("battery voltage: %d\n", value);

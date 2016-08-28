@@ -67,26 +67,26 @@ unsigned int svm_table [36] =
 
 void apply_duty_cycle (void)
 {
-  int _duty_cycle = duty_cycle;
+  int duty_cycle_ = duty_cycle;
   unsigned int value = 0;
 
   // invert in the case of negative value
-  if (_duty_cycle < 0)
-    _duty_cycle *= -1;
+  if (duty_cycle_ < 0)
+    duty_cycle_ *= -1;
 
   // scale and apply _duty_cycle (integer operations only!)
   value = svm_table[svm_table_index_a];
-  value = value * duty_cycle;
+  value = value * duty_cycle_;
   value = value / 1000;
   set_pwm_phase_a (value);
 
   value = svm_table[svm_table_index_b];
-  value = value * duty_cycle;
+  value = value * duty_cycle_;
   value = value / 1000;
   set_pwm_phase_b (value);
 
   value = svm_table[svm_table_index_c];
-  value = value * duty_cycle;
+  value = value * duty_cycle_;
   value = value / 1000;
   set_pwm_phase_c (value);
 }
@@ -103,6 +103,18 @@ void svm_table_index_dec (void)
   else svm_table_index_c = 35;
 }
 
+void svm_table_index_inc (void)
+{
+  if (svm_table_index_a < 35) svm_table_index_a++;
+  else svm_table_index_a = 0;
+
+  if (svm_table_index_b < 35) svm_table_index_b++;
+  else svm_table_index_b = 0;
+
+  if (svm_table_index_c < 35) svm_table_index_c++;
+  else svm_table_index_c = 0;
+}
+
 void commutation_disable (void)
 {
   TIM_CtrlPWMOutputs (TIM1, DISABLE); // PWM Output Disable
@@ -117,80 +129,100 @@ void commutate (void)
 
   hall_sensors = (GPIO_ReadInputData (HALL_SENSORS__PORT) & (HALL_SENSORS_MASK)); // mask other pins
 
-//  if (_direction == RIGHT)
-//  {
+  if (duty_cycle > 0)
+    _direction = RIGHT;
+  else
+    _direction = LEFT;
+
+  if (_direction == RIGHT)
+  {
     // the next sequence was obtained experimentaly
     switch (hall_sensors)
     {
       case 8192:
-	svm_table_index_a = 26;
-	svm_table_index_b = 2;
-	svm_table_index_c = 14;
+      svm_table_index_a = 28; // 1
+      svm_table_index_b = 4;
+      svm_table_index_c = 16;
       break;
 
       case 24576:
-	svm_table_index_a = 20;
-	svm_table_index_b = 32;
-	svm_table_index_c = 8;
+      svm_table_index_a = 22; // 2
+      svm_table_index_b = 34;
+      svm_table_index_c = 10;
       break;
 
       case 16384:
-	svm_table_index_a = 14;
-	svm_table_index_b = 26;
-	svm_table_index_c = 2;
+      svm_table_index_a = 16; // 3
+      svm_table_index_b = 28;
+      svm_table_index_c = 4;
       break;
 
       case 20480:
-	svm_table_index_a = 8;
-	svm_table_index_b = 20;
-	svm_table_index_c = 32;
+      svm_table_index_a = 10; // 4
+      svm_table_index_b = 22;
+      svm_table_index_c = 34;
       break;
 
       case 4096:
-	svm_table_index_a = 2;
-	svm_table_index_b = 14;
-	svm_table_index_c = 26;
+      svm_table_index_a = 4; // 5
+      svm_table_index_b = 16;
+      svm_table_index_c = 28;
       break;
 
       case 12288:
-	svm_table_index_a = 32;
-	svm_table_index_b = 8;
-	svm_table_index_c = 20;
+      svm_table_index_a = 34; // 6
+      svm_table_index_b = 10;
+      svm_table_index_c = 22;
       break;
 
       default:
       break;
     }
-//  }
-//  else if (_direction == LEFT)
-//  {
-//    switch (hall_sensors)
-//    {
-//      case 1: // left 4, 6, 5, 2, 3, 1
-//      sector = 4;
-//      break;
-//
-//      case 2:
-//      sector = 6;
-//      break;
-//
-//      case 3:
-//      sector = 5;
-//      break;
-//
-//      case 4:
-//      sector = 2;
-//      break;
-//
-//      case 5:
-//      sector = 3;
-//      break;
-//
-//      case 6:
-//      sector = 1;
-//      break;
-//    }
-//  }
+  }
+  else if (_direction == LEFT)
+  {
+    switch (hall_sensors)
+     {
+      case 8192:
+	      svm_table_index_a = 28; // 1
+	      svm_table_index_b = 4;
+	      svm_table_index_c = 16;
+      break;
+
+      case 24576:
+	      svm_table_index_a = 34; // 6
+	      svm_table_index_b = 10;
+	      svm_table_index_c = 22;
+      break;
+
+      case 16384:
+	      svm_table_index_a = 4; // 5
+	      svm_table_index_b = 16;
+	      svm_table_index_c = 28;
+      break;
+
+      case 20480:
+	      svm_table_index_a = 10; // 4
+	      svm_table_index_b = 22;
+	      svm_table_index_c = 34;
+      break;
+
+      case 4096:
+	      svm_table_index_a = 16; // 3
+	      svm_table_index_b = 28;
+	      svm_table_index_c = 4;
+      break;
+
+      case 12288:
+	      svm_table_index_a = 22; // 2
+	      svm_table_index_b = 34;
+	      svm_table_index_c = 10;
+      break;
+
+      default:
+      break;
+    }
+  }
 
     apply_duty_cycle ();
 }
