@@ -15,5 +15,6 @@ void adc_init (void);
 unsigned int adc_get_phase_a_current_value (void);
 unsigned int adc_get_phase_c_current_value (void);
 unsigned int adc_get_battery_voltage_value (void);
+unsigned int adc_get_potentiometer_value (void);
 
 #endif

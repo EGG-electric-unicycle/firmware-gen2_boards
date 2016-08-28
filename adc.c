@@ -13,7 +13,7 @@
 #include "adc.h"
 #include "main.h"
 
-static unsigned int adc_values[3];
+static unsigned int adc_values[4];
 
 void adc_init (void)
 {
@@ -32,7 +32,7 @@ void adc_init (void)
   DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1->DR);
   DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) &adc_values;
   DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-  DMA_InitStructure.DMA_BufferSize = 3;
+  DMA_InitStructure.DMA_BufferSize = 4;
   DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
   DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
   DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
@@ -52,7 +52,7 @@ void adc_init (void)
   ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
   ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-  ADC_InitStructure.ADC_NbrOfChannel = 3;
+  ADC_InitStructure.ADC_NbrOfChannel = 4;
   ADC_Init(ADC1, &ADC_InitStructure);
 
   /* ADC1 regular channel3 configuration */
@@ -61,6 +61,8 @@ void adc_init (void)
   ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 2, ADC_SampleTime_55Cycles5);
   /* ADC1 regular channel4 configuration */
   ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 3, ADC_SampleTime_55Cycles5);
+  /* ADC1 regular channel0 configuration */
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 4, ADC_SampleTime_55Cycles5);
 
   /* Enable ADC1 DMA */
   ADC_DMACmd(ADC1, ENABLE);
@@ -98,4 +100,10 @@ unsigned int adc_get_phase_c_current_value (void)
 unsigned int adc_get_battery_voltage_value (void)
 {
   return adc_values[2];
+}
+
+// output a value 0 - 4095
+unsigned int adc_get_potentiometer_value (void)
+{
+  return adc_values[3];
 }

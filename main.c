@@ -37,7 +37,7 @@ void initialize (void)
 
 //  TIM2_init ();
   gpio_init ();
-//  adc_init ();
+  adc_init ();
   pwm_init ();
 //  buzzer_init ();
   usart1_bluetooth_init ();
@@ -65,9 +65,15 @@ int main(void)
   while (1)
   {
 
-    delay_ms (500);
+    delay_ms (100);
 
-    motor_set_duty_cycle (100);
+    value = adc_get_potentiometer_value ();
+    value = value * 1000;
+    value = value / 4096;
+
+    value = value / 4;
+
+    motor_set_duty_cycle (value);
 
 //    balance_controller ();
 
@@ -75,8 +81,7 @@ int main(void)
 //    printf("adc phase a: %d\n", value);
 //    //printf("voltage adc phase a: %d\n\n", ((value * K_ADC_VOLTAGE) / 100));
 //
-    value = (adc_get_phase_c_current_value ());
-    printf("adc phase c: %d\n", value);
+    printf("pot: %d\n", value);
 //
 //    value = (adc_get_battery_voltage_value ());
 //    printf("battery voltage: %d\n", value);
