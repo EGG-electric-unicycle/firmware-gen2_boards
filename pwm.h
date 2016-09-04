@@ -9,7 +9,8 @@
 #ifndef _PWM_H_
 #define _PWM_H_
 
-#define DUTY_CYCLE_MAX		2303
+#define PWM_VALUE_DUTY_CYCLE_MAX		        (2304 - 1)
+#define MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX     ((2304 - 1) / 2)
 
 #define PWM_PERIOD_INTERRUPT		TIM3_UP_IRQHandler
 

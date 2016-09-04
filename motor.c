@@ -9,6 +9,7 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 #include "gpio.h"
+#include "pwm.h"
 #include "motor.h"
 
 //unsigned int bldc_machine_state = BLDC_NORMAL;
@@ -67,28 +68,65 @@ unsigned int svm_table [36] =
 
 void apply_duty_cycle (void)
 {
-  int duty_cycle_ = duty_cycle;
+  int duty_cycle_value = duty_cycle;
+  unsigned int temp1 = 0, temp2 = 0;
   unsigned int value = 0;
 
   // invert in the case of negative value
-  if (duty_cycle_ < 0)
-    duty_cycle_ *= -1;
+  if (duty_cycle_value < 0)
+    duty_cycle_value *= -1;
 
-  // scale and apply _duty_cycle (integer operations only!)
-  value = svm_table[svm_table_index_a];
-  value = value * duty_cycle_;
-  value = value / 1000;
-  set_pwm_phase_a (value);
+  /* scale and apply _duty_cycle (integer operations only!) */
+  temp1 = svm_table[svm_table_index_a];
+  if (temp1 > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
+  {
+    temp1 = temp1 - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+    temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+    temp1 = temp1 / 1000;
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + temp1;
+  }
+  else
+  {
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
+    temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+    temp1 = temp1 / 1000;
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
+  }
+  set_pwm_phase_a (temp1);
 
-  value = svm_table[svm_table_index_b];
-  value = value * duty_cycle_;
-  value = value / 1000;
-  set_pwm_phase_b (value);
+  temp1 = svm_table[svm_table_index_b];
+  if (temp1 > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
+  {
+    temp1 = temp1 - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+    temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+    temp1 = temp1 / 1000;
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + temp1;
+  }
+  else
+  {
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
+    temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+    temp1 = temp1 / 1000;
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
+  }
+  set_pwm_phase_b (temp1);
 
-  value = svm_table[svm_table_index_c];
-  value = value * duty_cycle_;
-  value = value / 1000;
-  set_pwm_phase_c (value);
+  temp1 = svm_table[svm_table_index_c];
+  if (temp1 > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
+  {
+    temp1 = temp1 - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+    temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+    temp1 = temp1 / 1000;
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + temp1;
+  }
+  else
+  {
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
+    temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+    temp1 = temp1 / 1000;
+    temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
+  }
+  set_pwm_phase_c (temp1);
 }
 
 void svm_table_index_dec (void)
@@ -179,44 +217,44 @@ void commutate (void)
       break;
     }
   }
-  else if (_direction == LEFT)
+  else if (_direction == LEFT) // começar no 1 atrai
   {
     switch (hall_sensors)
      {
       case 8192:
-	      svm_table_index_a = 28; // 1
-	      svm_table_index_b = 4;
-	      svm_table_index_c = 16;
+        svm_table_index_a = 10; // 4
+        svm_table_index_b = 22;
+        svm_table_index_c = 34;
       break;
 
       case 24576:
-	      svm_table_index_a = 34; // 6
-	      svm_table_index_b = 10;
-	      svm_table_index_c = 22;
+        svm_table_index_a = 4; // 5
+        svm_table_index_b = 16;
+        svm_table_index_c = 28;
       break;
 
       case 16384:
-	      svm_table_index_a = 4; // 5
-	      svm_table_index_b = 16;
-	      svm_table_index_c = 28;
+        svm_table_index_a = 34; // 6
+        svm_table_index_b = 10;
+        svm_table_index_c = 22;
       break;
 
       case 20480:
-	      svm_table_index_a = 10; // 4
-	      svm_table_index_b = 22;
-	      svm_table_index_c = 34;
+        svm_table_index_a = 28; // 1
+        svm_table_index_b = 4;
+        svm_table_index_c = 16;
       break;
 
       case 4096:
-	      svm_table_index_a = 16; // 3
-	      svm_table_index_b = 28;
-	      svm_table_index_c = 4;
+        svm_table_index_a = 22; // 2
+        svm_table_index_b = 34;
+        svm_table_index_c = 10;
       break;
 
       case 12288:
-	      svm_table_index_a = 22; // 2
-	      svm_table_index_b = 34;
-	      svm_table_index_c = 10;
+        svm_table_index_a = 16; // 3
+        svm_table_index_b = 28;
+        svm_table_index_c = 4;
       break;
 
       default:

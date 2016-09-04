@@ -6,11 +6,11 @@
  * Released under the GPL License, Version 3
  */
 
-#ifndef _BUZZER_H
-#define _BUZZER_H
+#ifndef _FILTER_H_
+#define _FILTER_H_
 
-void buzzer_init (void);
-void buzzer_on (void);
-void buzzer_off (void);
+#define EMA_ALPHA 1
 
-#endif /* _BUZZER_H_ */
+unsigned ema_filter (unsigned int current_value);
+
+#endif

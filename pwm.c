@@ -66,7 +66,7 @@ void pwm_init (void)
   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
   TIM_TimeBaseStructure.TIM_Prescaler = 0;
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-  TIM_TimeBaseStructure.TIM_Period = (2304 - 1); // 72MHz clock (PCLK1), 72MHz/4608 = 15.625KHz (BUT PWM center aligned mode needs twice the frequency)
+  TIM_TimeBaseStructure.TIM_Period = PWM_VALUE_DUTY_CYCLE_MAX; // 72MHz clock (PCLK1), 72MHz/4608 = 15.625KHz (BUT PWM center aligned mode needs twice the frequency)
   TIM_TimeBaseStructure.TIM_ClockDivision = 0;
   TIM_TimeBaseStructure.TIM_RepetitionCounter = 1; // will fire the TIMx_UP_IRQHandler at every PWM period (64us)
   TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);

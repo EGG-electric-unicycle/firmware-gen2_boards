@@ -11,6 +11,7 @@
 #include "main.h"
 #include "stdio.h"
 #include "leds.h"
+#include "filter.h"
 
 static unsigned int _ms;
 
@@ -65,16 +66,20 @@ int main(void)
   while (1)
   {
 
-    delay_ms (100);
+    delay_ms (10);
 
     value = adc_get_potentiometer_value ();
+    value = ema_filter (value);
+
+    //value = (value * 1000) / 4096;
+
     value = value - 2048;
     value = value * 1000;
     value = value / 2048;
 
     motor_set_duty_cycle (value);
     printf("pot: %d\n", value);
-
+//    apply_duty_cycle ();
 
 //    balance_controller ();
 
