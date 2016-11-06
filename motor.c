@@ -217,7 +217,7 @@ void commutate (void)
       break;
     }
   }
-  else if (_direction == LEFT) // começar no 1 atrai
+  else if (_direction == LEFT)
   {
     switch (hall_sensors)
      {

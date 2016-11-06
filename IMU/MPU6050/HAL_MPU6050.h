@@ -37,6 +37,7 @@ extern "C" {
 
 /* Includes */
 #include "stm32f10x.h"
+#include "gpio.h"
 
 /**
  * @addtogroup  MPU6050_I2C_Define
