@@ -42,6 +42,11 @@
 #define K_ADC_VOLTAGE 161 // amplified 100k
 
 // Motor
+#define MOTOR_R		0.01879
+#define MOTOR_L		16.54
+#define MOTOR_GAMA	0.004138
+#define MOTOR_LINKAGE	1.0
+
 #define MOTOR_MAX_CURRENT	1 // Define max motor current (used on adc.c)
 #define MOTOR_MAX_SPEED 	20000 // meter per hour
 //#define MOTOR_MIN_SPEED 	5000 // meter per hour -- walking speed is 5km/h
