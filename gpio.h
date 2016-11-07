@@ -50,7 +50,8 @@
 #ifndef GPIO_H
 #define GPIO_H
 
-#define CURRENT_PHASE_A__PIN      GPIO_Pin_3#define LED_1_BATTERY_INDICATOR__PIN        GPIO_Pin_15
+#define CURRENT_PHASE_A__PIN      GPIO_Pin_3
+#define LED_1_BATTERY_INDICATOR__PIN        GPIO_Pin_15
 #define LED_1_BATTERY_INDICATOR__PORT       GPIOB
 #define CURRENT_PHASE_A__PORT     GPIOA
 #define CURRENT_PHASE_C__PIN      GPIO_Pin_2
