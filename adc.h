@@ -9,7 +9,13 @@
 #ifndef _ADC_H_
 #define _ADC_H_
 
-#define MAX_CURRENT_INTERRUPT ADC1_2_IRQHandler
+#define PHASE_A_CURRENT_ADC_CHANNEL	ADC_Channel_3
+#define PHASE_C_CURRENT_ADC_CHANNEL	ADC_Channel_2
+#define BATTERY_VOLTAGE_ADC_CHANNEL	ADC_Channel_4
+#define POTENTIOMETER_ADC_CHANNEL	ADC_Channel_0
+
+//#define MAX_CURRENT_INTERRUPT ADC1_2_IRQHandler
+
 
 void adc_init (void);
 unsigned int adc_get_phase_a_current_value (void);

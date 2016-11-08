@@ -9,11 +9,17 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+// Constants
+#define ONE_BY_SQRT3			(0.57735026919)
+#define TWO_BY_SQRT3			(2.0f * 0.57735026919)
+#define SQRT3_BY_2				(0.86602540378)
+
 // Define for the NVIC IRQChannel Preemption Priority
 // lower number has higher priority
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
 #define HALL_SENSORS_PRIORITY			1
-#define	TIM2_PRIORITY				2
+#define	TIM3_PRIORITY				2
+#define	TIM2_PRIORITY				3
 
 // State machine
 #define COAST			0
@@ -39,13 +45,16 @@
 // -4.7A | 1.65V
 // about 12.7mv for each 1A
 
-#define K_ADC_VOLTAGE 161 // amplified 100k
+#define ADC_CURRENT_OFFSET		2131 // represents 1.71V when current = 0
+#define ADC_CURRENT_GAIN_AMPS		0.0634 //
+#define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
 
 // Motor
 #define MOTOR_R		0.01879
 #define MOTOR_L		16.54
 #define MOTOR_GAMA	0.004138
 #define MOTOR_LINKAGE	1.0
+#define MOTOR_PWM_DT	0.0001
 
 #define MOTOR_MAX_CURRENT	1 // Define max motor current (used on adc.c)
 #define MOTOR_MAX_SPEED 	20000 // meter per hour

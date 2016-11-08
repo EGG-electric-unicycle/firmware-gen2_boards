@@ -13,10 +13,25 @@
 #include "gpio.h"
 #include "pwm.h"
 
+unsigned int TIM_DirMode(TIM_TypeDef* TIMx)
+{
+  if ((TIMx->CR1 & 0x10) == 0x10) // verify DIR bit state
+    return 1;
+  else
+    return 0;
+}
+
 // This interrupt fire after the end on the PWM period (49us) - TIM1 UPdate event
 void PWM_PERIOD_INTERRUPT (void)
 {
+  if (!TIM_DirMode(TIM3)) // execute the next code only 1 time per each PWM cycle, and when upcounting
+  {
+    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 
+    FOC_control_loop ();
+
+    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+  }
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
@@ -66,27 +81,27 @@ void pwm_init (void)
   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
   TIM_TimeBaseStructure.TIM_Prescaler = 0;
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-  TIM_TimeBaseStructure.TIM_Period = PWM_VALUE_DUTY_CYCLE_MAX; // 72MHz clock (PCLK1), 72MHz/4608 = 15.625KHz (BUT PWM center aligned mode needs twice the frequency)
+  TIM_TimeBaseStructure.TIM_Period = PWM_VALUE_DUTY_CYCLE_MAX; // 72MHz clock (PCLK1), 72MHz/7200 = 10KHz (BUT PWM center aligned mode needs twice the frequency)
   TIM_TimeBaseStructure.TIM_ClockDivision = 0;
   TIM_TimeBaseStructure.TIM_RepetitionCounter = 1; // will fire the TIMx_UP_IRQHandler at every PWM period (64us)
   TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
   /* Configures the TIMx Update Request Interrupt source (SETS the CR1->URS bit)*/
-  TIM_UpdateRequestConfig(TIM3,TIM_UpdateSource_Regular);
+  TIM_UpdateRequestConfig(TIM3, TIM_UpdateSource_Regular);
 
   /* TIMx_ARR register is buffered and so the duty-cycle value is just updated (shadow registers) at Update Event */
   TIM_ARRPreloadConfig(TIM3, ENABLE);
 
-//  NVIC_InitTypeDef NVIC_InitStructure;
-//  /* Configure and enable TIMx interrupt */
-//  NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-//  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = TIM3_PRIORITY;
-//  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-//  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-//  NVIC_Init(&NVIC_InitStructure);
-//
-//  /* Enable Update Event interrupt */
-//  TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+  NVIC_InitTypeDef NVIC_InitStructure;
+  /* Configure and enable TIMx interrupt */
+  NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = TIM3_PRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable Update Event interrupt */
+  TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 
   /* Channel 1, 2, 3 Configuration in PWM mode */
   TIM_OCInitTypeDef TIM_OCInitStructure;

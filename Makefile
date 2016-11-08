@@ -35,7 +35,7 @@ SIZE     = $(TCPREFIX)size
 # s = -Os enables all -O2 optimizations that do not typically increase code
 #     size.
 # (See gcc manual for further information)
-OPT = s
+OPT = 0
 
 # -mfix-cortex-m3-ldrd should be enabled by default for Cortex M3.
 # CFLAGS -H show header files
@@ -49,7 +49,7 @@ LFLAGS  = -Tstm32_flash.ld -L/usr/lib/gcc/arm-none-eabi/4.9.3/armv7-m -lgcc -lm 
 #LFLAGS += -u _printf_float # newlib nano printf use floats
 #LFLAGS += -u _scanf_float # newlib nano scanf use floats
 CPFLAGS = -Obinary 
-ODFLAGS = -S
+ODFLAGS = -s
 
 SOURCES=$(shell find ./ -type f -iname '*.c')
 OBJECTS=$(foreach x, $(basename $(SOURCES)), $(x).o)

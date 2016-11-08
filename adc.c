@@ -18,7 +18,7 @@ static unsigned int adc_values[4];
 void adc_init (void)
 {
   /* ADCCLK = PCLK2/8 */
-  RCC_ADCCLKConfig(RCC_PCLK2_Div8);
+  RCC_ADCCLKConfig(RCC_PCLK2_Div6); // 72MHz/6 = 12MHz (ADC max clock is 14MHz)
 
   /* Enable DMA1 clock */
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
@@ -56,13 +56,13 @@ void adc_init (void)
   ADC_Init(ADC1, &ADC_InitStructure);
 
   /* ADC1 regular channel3 configuration */
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_3, 1, ADC_SampleTime_55Cycles5);
+  ADC_RegularChannelConfig(ADC1, PHASE_A_CURRENT_ADC_CHANNEL, 1, ADC_SampleTime_7Cycles5);
   /* ADC1 regular channel2 configuration */
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 2, ADC_SampleTime_55Cycles5);
+  ADC_RegularChannelConfig(ADC1, PHASE_C_CURRENT_ADC_CHANNEL, 2, ADC_SampleTime_7Cycles5);
   /* ADC1 regular channel4 configuration */
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 3, ADC_SampleTime_55Cycles5);
+  ADC_RegularChannelConfig(ADC1, BATTERY_VOLTAGE_ADC_CHANNEL, 3, ADC_SampleTime_7Cycles5);
   /* ADC1 regular channel0 configuration */
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 4, ADC_SampleTime_55Cycles5);
+  ADC_RegularChannelConfig(ADC1, POTENTIOMETER_ADC_CHANNEL, 4, ADC_SampleTime_7Cycles5);
 
   /* Enable ADC1 DMA */
   ADC_DMACmd(ADC1, ENABLE);

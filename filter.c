@@ -9,7 +9,7 @@
 #include "filter.h"
 
 // Exponential Moving Average (EMA)
-unsigned ema_filter (unsigned int current_value)
+unsigned int ema_filter (unsigned int current_value)
 {
   static int exponential_average = 0;
 
