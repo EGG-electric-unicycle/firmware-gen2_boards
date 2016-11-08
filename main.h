@@ -50,10 +50,10 @@
 #define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
 
 // Motor
-#define MOTOR_R		0.01879
-#define MOTOR_L		16.54
-#define MOTOR_GAMA	0.004138
-#define MOTOR_LINKAGE	1.0
+#define MOTOR_R		0.015
+#define MOTOR_L		0.00002
+#define MOTOR_LINKAGE	0.00245
+#define MOTOR_GAMA	30000000 // 600 / L as noted on VESC mcconf_default.h
 #define MOTOR_PWM_DT	0.0001
 
 #define MOTOR_MAX_CURRENT	1 // Define max motor current (used on adc.c)

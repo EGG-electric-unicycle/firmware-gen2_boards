@@ -26,11 +26,9 @@ void PWM_PERIOD_INTERRUPT (void)
 {
   if (!TIM_DirMode(TIM3)) // execute the next code only 1 time per each PWM cycle, and when upcounting
   {
-    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-
+//    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
     FOC_control_loop ();
-
-    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+//    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM3, TIM_IT_Update);

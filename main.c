@@ -63,23 +63,32 @@ int main(void)
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
+
+  // don't start until the potentiometer is on the middle value --> PWM ~= 0
+  unsigned int duty_cycle_value;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1620 ||
+      duty_cycle_value > 1980) ;
+
   enable_phase_a ();
   enable_phase_b ();
   enable_phase_c ();
 
   while (1)
   {
-
     delay_ms (10);
 
-    unsigned int duty_cycle_value = adc_get_potentiometer_value ();
+    duty_cycle_value = adc_get_potentiometer_value ();
     duty_cycle_value = ema_filter (duty_cycle_value);
 
-    float value = ((float) duty_cycle_value) / 1.78;
+//    float value = ((float) duty_cycle_value) / 1.138;
+//    set_pwm_phase_a ((unsigned int) value);
+//    set_pwm_phase_b ((unsigned int) value);
+//    set_pwm_phase_c ((unsigned int) value);
 
-    TIM_SetCompare4 (TIM3, 360);
-    TIM_SetCompare3 (TIM3, 360);
-    TIM_SetCompare1 (TIM3, 360);
+    int value = ((int) duty_cycle_value) - 2048;
+    value = value * 1000;
+    value = value / 2048;
+    motor_set_duty_cycle (value);
   }
 }
 

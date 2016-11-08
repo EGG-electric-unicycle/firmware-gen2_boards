@@ -18,10 +18,23 @@
 // nan check for floats
 #define UTILS_IS_NAN(x)		((x) != (x))
 
+// Converts degrees to radians.
+#define degrees_to_radians(angle_degrees) (angle_degrees * M_PI / 180.0)
+
+// Converts radians to degrees.
+#define radians_to_degrees(angle_radians) (angle_radians * 180.0 / M_PI)
+
 // vars for the Observer
 volatile float m_observer_x1;
 volatile float m_observer_x2;
 volatile float m_phase_now_observer;
+
+static volatile float m_pll_phase;
+static volatile float m_pll_speed;
+
+int phase_a_duty_cycle = 0; // needs to be divided by 1000 to get value in [0 -> 1]
+int phase_b_duty_cycle = 0;
+int phase_c_duty_cycle = 0;
 
 //unsigned int bldc_machine_state = BLDC_NORMAL;
 static unsigned int _direction = RIGHT;
@@ -37,51 +50,51 @@ int duty_cycle = 0;
 // Space Vector Modulation PWMs values, please read this blog message:
 // http://www.berryjam.eu/2015/04/driving-bldc-gimbals-at-super-slow-speeds-with-arduino/
 // Please see file: BLDC_SPWM_Lookup_tables.ods
+
 unsigned int svm_table [36] =
 {
-  1280,
-  1579,
-  1870,
-  2143,
-  2217,
-  2262,
-  2277,
-  2262,
-  2217,
-  2143,
-  2217,
-  2262,
-  2277,
-  2262,
-  2217,
-  2143,
-  1870,
-  1579,
-  1280,
-  980,
-  689,
-  416,
-  342,
-  297,
-  282,
-  297,
-  342,
-  416,
-  342,
-  297,
-  282,
-  297,
-  342,
-  416,
-  689,
-  980
+  1928,
+  2396,
+  2851,
+  3277,
+  3392,
+  3462,
+  3486,
+  3462,
+  3392,
+  3277,
+  3392,
+  3462,
+  3486,
+  3462,
+  3392,
+  3277,
+  2851,
+  2396,
+  1928,
+  1459,
+  1004,
+  578,
+  463,
+  393,
+  369,
+  393,
+  463,
+  578,
+  463,
+  393,
+  369,
+  393,
+  463,
+  578,
+  1004,
+  1459
 };
 
 void apply_duty_cycle (void)
 {
   int duty_cycle_value = duty_cycle;
-  unsigned int temp1 = 0, temp2 = 0;
-  unsigned int value = 0;
+  int temp1 = 0;
 
   // invert in the case of negative value
   if (duty_cycle_value < 0)
@@ -93,6 +106,10 @@ void apply_duty_cycle (void)
   {
     temp1 = temp1 - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
     temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+
+    // save phase duty_cycle for later usage
+    phase_a_duty_cycle = (((unsigned int) temp1) * 500) / MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+
     temp1 = temp1 / 1000;
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + temp1;
   }
@@ -100,6 +117,10 @@ void apply_duty_cycle (void)
   {
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
     temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+
+    // save phase duty_cycle for later usage
+    phase_a_duty_cycle = (((unsigned int) temp1) * 500) / MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+
     temp1 = temp1 / 1000;
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
   }
@@ -110,6 +131,10 @@ void apply_duty_cycle (void)
   {
     temp1 = temp1 - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
     temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+
+    // save phase duty_cycle for later usage
+    phase_b_duty_cycle = (((unsigned int) temp1) * 500) / MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+
     temp1 = temp1 / 1000;
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + temp1;
   }
@@ -117,6 +142,10 @@ void apply_duty_cycle (void)
   {
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
     temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+
+    // save phase duty_cycle for later usage
+    phase_b_duty_cycle = (((unsigned int) temp1) * 500) / MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+
     temp1 = temp1 / 1000;
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
   }
@@ -127,6 +156,10 @@ void apply_duty_cycle (void)
   {
     temp1 = temp1 - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
     temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+
+    // save phase duty_cycle for later usage
+    phase_c_duty_cycle = (((unsigned int) temp1) * 500) / MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+
     temp1 = temp1 / 1000;
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + temp1;
   }
@@ -134,6 +167,10 @@ void apply_duty_cycle (void)
   {
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
     temp1 = temp1 * ((unsigned int ) duty_cycle_value);
+
+    // save phase duty_cycle for later usage
+    phase_c_duty_cycle = (((unsigned int) temp1) * 500) / MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX;
+
     temp1 = temp1 / 1000;
     temp1 = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - temp1;
   }
@@ -339,6 +376,37 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
   *phase = qfp_fatan2(qfp_fsub(*x2, qfp_fmul(L, i_beta)), qfp_fsub(*x1, qfp_fmul(L, i_alpha)));
 }
 
+/**
+ * Make sure that -pi <= angle < pi,
+ *
+ * TODO: Maybe use fmodf instead?
+ *
+ * @param angle
+ * The angle to normalize in radians.
+ * WARNING: Don't use too large angles.
+ */
+void utils_norm_angle_rad (float *angle)
+{
+  while (*angle < -M_PI)
+  {
+    *angle += 2.0 * M_PI;
+  }
+
+  while (*angle >  M_PI)
+  {
+    *angle -= 2.0 * M_PI;
+  }
+}
+
+//static void pll_run (float phase, float dt, volatile float *phase_var, volatile float *speed_var)
+//{
+//  float delta_theta = phase - *phase_var;
+//  utils_norm_angle_rad(&delta_theta);
+//  *phase_var += (*speed_var + m_conf->foc_pll_kp * delta_theta) * dt;
+//  utils_norm_angle_rad((float*)phase_var);
+//  *speed_var += m_conf->foc_pll_ki * delta_theta * dt;
+//}
+
 void FOC_control_loop (void)
 {
   // measure raw currents A and C
@@ -366,12 +434,13 @@ void FOC_control_loop (void)
   int adc_v_bus = adc_get_battery_voltage_value ();
   float v_bus = qfp_fmul(adc_v_bus, ADC_BATTERY_VOLTAGE_GAIN_VOLTS); // calc v_bus in volts
 
-
+  float va = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_a_duty_cycle)), 100000); // needs to be divided by 1000 due to int phase_a_duty_cycle
+  float vb = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_b_duty_cycle)), 100000);
+  float vc = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_c_duty_cycle)), 100000);
 
   // Clarke transform for the voltages on each phase
-  //float v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
-  float v_alpha = (2.0 / 3.0) * 20 - (1.0 / 3.0) * 30 - (1.0 / 3.0) * 40;
-  float v_beta = ONE_BY_SQRT3 * 30 - ONE_BY_SQRT3 * 40;
+  float v_alpha = qfp_fsub(qfp_fsub(qfp_fmul((2.0 / 3.0), va), qfp_fmul((1.0 / 3.0), vb)), qfp_fmul((1.0 / 3.0), vc));
+  float v_beta = qfp_fsub(qfp_fmul(ONE_BY_SQRT3, vb), qfp_fmul(ONE_BY_SQRT3, vc));
 
   observer_update(v_alpha,
 		  v_beta,
@@ -381,107 +450,30 @@ void FOC_control_loop (void)
 		  &m_observer_x1,
 		  &m_observer_x2,
 		  &m_phase_now_observer);
+
+  float angle_degrees = radians_to_degrees(m_phase_now_observer);
+  if (angle_degrees > 0 && angle_degrees < 60)
+  {
+    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+  }
+  else
+  {
+    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+  }
+
+  // Run PLL for speed estimation
+//  pll_run(m_phase_now_observer, MOTOR_PWM_DT, &m_pll_phase, &m_pll_speed);
+
 }
+
+
+
+
+
 
 //void mcpwm_foc_adc_inj_int_handler(void)
 //{
 
-
-//  // Measure and store bus voltage
-//  m_motor_state.v_bus = GET_INPUT_VOLTAGE();
-//
-//  // Track back emf
-//  float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
-//  float Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
-//  float Vc = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
-//
-//  // Clarke transform
-//  m_motor_state.v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
-//  m_motor_state.v_beta = ONE_BY_SQRT3 * Vb - ONE_BY_SQRT3 * Vc;
-//
-//  static float phase_before = 0.0;
-//  const float phase_diff = utils_angle_difference_rad(m_motor_state.phase, phase_before);
-//  phase_before = m_motor_state.phase;
-//
-//  // Clarke transform assuming balanced currents
-//  m_motor_state.i_alpha = ia;
-//  m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
-//
-//  const float duty_abs = fabsf(m_motor_state.duty_now);
-//  float id_set_tmp = m_id_set;
-//  float iq_set_tmp = m_iq_set;
-//  m_motor_state.max_duty = m_conf->l_max_duty;
-//
-//  static float duty_filtered = 0.0;
-//  UTILS_LP_FAST(duty_filtered, m_motor_state.duty_now, 0.1);
-//  utils_truncate_number(&duty_filtered, -1.0, 1.0);
-//
-//  float duty_set = m_duty_cycle_set;
-//  bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
-//
-//  // When the filtered duty cycle in sensorless mode becomes low in brake mode, the
-//  // observer has lost tracking. Use duty cycle control with the lowest duty cycle
-//  // to get as smooth braking as possible.
-//  if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-////				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoderss
-//		  && fabsf(duty_filtered) < 0.03) {
-//	  control_duty = true;
-//	  duty_set = 0.0;
-//  }
-//
-//  // Brake when set ERPM is below min ERPM
-//  if (m_control_mode == CONTROL_MODE_SPEED &&
-//		  fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
-//	  control_duty = true;
-//	  duty_set = 0.0;
-//  }
-//
-//    if (control_duty) {
-//	    // Duty cycle control
-//	    static float duty_i_term = 0.0;
-//	    if (fabsf(duty_set) < (duty_abs - 0.05) ||
-//			    (SIGN(m_motor_state.vq) * m_motor_state.iq) < m_conf->lo_current_min) {
-//		    // Truncating the duty cycle here would be dangerous, so run a PID controller.
-//
-//		    // Compensation for supply voltage variations
-//		    float scale = 1.0 / GET_INPUT_VOLTAGE();
-//
-//		    // Compute error
-//		    float error = duty_set - m_motor_state.duty_now;
-//
-//		    // Compute parameters
-//		    float p_term = error * m_conf->foc_duty_dowmramp_kp * scale;
-//		    duty_i_term += error * (m_conf->foc_duty_dowmramp_ki * dt) * scale;
-//
-//		    // I-term wind-up protection
-//		    utils_truncate_number(&duty_i_term, -1.0, 1.0);
-//
-//		    // Calculate output
-//		    float output = p_term + duty_i_term;
-//		    utils_truncate_number(&output, -1.0, 1.0);
-//		    iq_set_tmp = output * m_conf->lo_current_max;
-//	    } else {
-//		    // If the duty cycle is less than or equal to the set duty cycle just limit
-//		    // the modulation and use the maximum allowed current.
-//		    duty_i_term = 0.0;
-//		    m_motor_state.max_duty = duty_set;
-//		    if (duty_set > 0.0) {
-//			    iq_set_tmp = m_conf->lo_current_max;
-//		    } else {
-//			    iq_set_tmp = -m_conf->lo_current_max;
-//		    }
-//	    }
-//    } else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
-//	    // Braking
-//	    iq_set_tmp = fabsf(iq_set_tmp);
-//
-//	    if (phase_diff > 0.0) {
-//		    iq_set_tmp = -iq_set_tmp;
-//	    } else if (phase_diff == 0.0) {
-//		    iq_set_tmp = 0.0;
-//	    }
-//    }
-//
 //    // Run observer
 //    observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
 //			    m_motor_state.i_alpha, m_motor_state.i_beta, MOTOR_PWM_DT,
