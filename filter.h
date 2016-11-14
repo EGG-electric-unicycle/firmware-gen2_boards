@@ -11,6 +11,6 @@
 
 #define EMA_ALPHA 1
 
-unsigned ema_filter (unsigned int current_value);
+unsigned int ema_filter_uint32 (unsigned int *current_value, unsigned int *exponential_moving_average, unsigned int *ema_alpha);
 
 #endif

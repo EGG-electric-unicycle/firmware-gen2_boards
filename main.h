@@ -49,11 +49,17 @@
 #define ADC_CURRENT_GAIN_AMPS		0.0634 //
 #define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
 
-// Motor
-#define MOTOR_R		0.015
-#define MOTOR_L		0.00002
-#define MOTOR_LINKAGE	0.00245
-#define MOTOR_GAMA	30000000 // 600 / L as noted on VESC mcconf_default.h
+// VESC Lizardmech
+//#define MOTOR_R		0.20653
+//#define MOTOR_L		0.00022277
+//#define MOTOR_LINKAGE	0.02436 // 0.1 NOK; 0.01 a velocidade baixa ok mas aumentando começa com picos;
+//#define MOTOR_GAMA	4490000 // 60 / L as noted on VESC mcconf_default.h // 1000 Não funciona; 10000 começa a funcionar
+//#define MOTOR_PWM_DT	0.0001
+
+#define MOTOR_R		0.5
+#define MOTOR_L		0.001
+#define MOTOR_LINKAGE	0.0001
+#define MOTOR_GAMA	100000 // 60 / L as noted on VESC mcconf_default.h
 #define MOTOR_PWM_DT	0.0001
 
 #define MOTOR_MAX_CURRENT	1 // Define max motor current (used on adc.c)

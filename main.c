@@ -18,6 +18,7 @@
 #include "stm32f10x_tim.h"
 #include "timer.h"
 #include "adc.h"
+#include "motor.h"
 
 static unsigned int _ms;
 
@@ -66,19 +67,30 @@ int main(void)
 
   // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1620 ||
-      duty_cycle_value > 1980) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+      duty_cycle_value > 1880) ;
+
+  motor_calc_current_dc_offset ();
+
+  int value = ((int) duty_cycle_value) - 2048;
+  value = value * 1000;
+  value = value / 2048;
+  motor_set_duty_cycle (value);
 
   enable_phase_a ();
   enable_phase_b ();
   enable_phase_c ();
+
+  commutate ();
 
   while (1)
   {
     delay_ms (10);
 
     duty_cycle_value = adc_get_potentiometer_value ();
-    duty_cycle_value = ema_filter (duty_cycle_value);
+    unsigned int alpha = 1;
+    unsigned int moving_average = 4095 / 2;
+    ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
 
 //    float value = ((float) duty_cycle_value) / 1.138;
 //    set_pwm_phase_a ((unsigned int) value);

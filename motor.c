@@ -24,6 +24,9 @@
 // Converts radians to degrees.
 #define radians_to_degrees(angle_radians) (angle_radians * 180.0 / M_PI)
 
+unsigned int adc_phase_a_current_offset;
+unsigned int adc_phase_c_current_offset;
+
 // vars for the Observer
 volatile float m_observer_x1;
 volatile float m_observer_x2;
@@ -90,6 +93,22 @@ unsigned int svm_table [36] =
   1004,
   1459
 };
+
+// calc the DC offset value for the current ADCs
+void motor_calc_current_dc_offset (void)
+{
+  static unsigned int i;
+  while (1)
+  {
+    adc_phase_a_current_offset += adc_get_phase_a_current_value ();
+    adc_phase_c_current_offset += adc_get_phase_c_current_value ();
+    delay_ms (10);
+    if (i++ > 199)
+      break;
+  }
+  adc_phase_a_current_offset /= 200;
+  adc_phase_c_current_offset /= 200;
+}
 
 void apply_duty_cycle (void)
 {
@@ -410,21 +429,33 @@ void utils_norm_angle_rad (float *angle)
 void FOC_control_loop (void)
 {
   // measure raw currents A and C
-  int adc_phase_a_current = adc_get_phase_a_current_value ();
-  int adc_phase_c_current = adc_get_phase_c_current_value ();
+  unsigned int adc_phase_a_current = adc_get_phase_a_current_value ();
+  unsigned int adc_phase_c_current = adc_get_phase_c_current_value ();
 
-  // removing
-  adc_phase_a_current -= ADC_CURRENT_OFFSET;
-  adc_phase_c_current -= ADC_CURRENT_OFFSET;
+  // filtering to remove possible signal noise
+  unsigned int adc_phase_a_current_filtered;
+  unsigned int adc_phase_c_current_filtered;
+  static unsigned int moving_average_a_current = 0;
+  static unsigned int moving_average_c_current = 0;
+  const unsigned int moving_average_current_alpha = 80;
+  adc_phase_a_current_filtered = ema_filter_uint32 (&adc_phase_a_current, &moving_average_a_current, &moving_average_current_alpha);
+  adc_phase_c_current_filtered = ema_filter_uint32 (&adc_phase_c_current, &moving_average_c_current, &moving_average_current_alpha);
+
+  // removing DC offset
+  int adc_phase_a_current_filtered_1;
+  int adc_phase_c_current_filtered_1;
+  adc_phase_a_current_filtered_1 = adc_phase_a_current_filtered - adc_phase_a_current_offset;
+  adc_phase_c_current_filtered_1 = adc_phase_c_current_filtered - adc_phase_c_current_offset;
 
   /* Calc phase B current assuming balanced currents
    * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
    */
-  int adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
+  int adc_phase_b_current_filtered_1;
+  adc_phase_b_current_filtered_1 = -adc_phase_a_current_filtered_1 - adc_phase_c_current_filtered_1;
 
   // calc ia and ib in Amps
-  float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_AMPS);
-  float ib = qfp_fmul(adc_phase_b_current, ADC_CURRENT_GAIN_AMPS);
+  float ia = qfp_fmul(adc_phase_a_current_filtered_1, ADC_CURRENT_GAIN_AMPS);
+  float ib = qfp_fmul(adc_phase_b_current_filtered_1, ADC_CURRENT_GAIN_AMPS);
 
   // Clarke transform assuming balanced currents
   float i_alpha = ia;
@@ -432,9 +463,15 @@ void FOC_control_loop (void)
 
   // calc voltage on each motor phase
   int adc_v_bus = adc_get_battery_voltage_value ();
+
+  unsigned int adc_v_bus_filtered;
+  static unsigned int moving_average_adc_v_bus = 0;
+  const unsigned int moving_average_v_bus_alpha = 80;
+  adc_v_bus_filtered = ema_filter_uint32 (&adc_v_bus, &moving_average_adc_v_bus, &moving_average_v_bus_alpha); // filtering to remove possible signal noise
+
   float v_bus = qfp_fmul(adc_v_bus, ADC_BATTERY_VOLTAGE_GAIN_VOLTS); // calc v_bus in volts
 
-  float va = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_a_duty_cycle)), 100000); // needs to be divided by 1000 due to int phase_a_duty_cycle
+  float va = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_a_duty_cycle)), 100000); // needs to be divided by 100000 due to int phase_a_duty_cycle
   float vb = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_b_duty_cycle)), 100000);
   float vc = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_c_duty_cycle)), 100000);
 

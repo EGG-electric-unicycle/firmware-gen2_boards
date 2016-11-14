@@ -42,5 +42,6 @@ void bldc_set_state (unsigned int state);
 unsigned int bldc_get_state (void);
 void apply_duty_cycle (void);
 void commutate_timer (void);
+void motor_calc_current_dc_offset (void);
 
 #endif /* _MOTOR_H_ */
