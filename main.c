@@ -47,8 +47,8 @@ void initialize (void)
   gpio_init ();
   adc_init ();
   pwm_init ();
-  buzzer_init ();
-  usart1_bluetooth_init ();
+//  buzzer_init ();
+//  usart1_bluetooth_init ();
   hall_sensor_init ();
 //  MPU6050_I2C_Init ();
 //  MPU6050_Initialize ();
@@ -64,17 +64,13 @@ int main(void)
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
-
-  // don't start until the potentiometer is on the middle value --> PWM ~= 0
+  // don't start until the potentiometer is on the left side
   unsigned int duty_cycle_value;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
-      duty_cycle_value > 1880) ;
+  while (adc_get_potentiometer_value() < (4095/15)) ;
 
   motor_calc_current_dc_offset ();
 
-  int value = ((int) duty_cycle_value) - 2048;
-  value = value * 1000;
-  value = value / 2048;
+  int value = (int) (qfp_fsub(adc_get_potentiometer_value(), 4.096));
   motor_set_duty_cycle (value);
 
   enable_phase_a ();
@@ -83,24 +79,21 @@ int main(void)
 
   commutate ();
 
+  unsigned int moving_average = 4095 / 2;
+  unsigned int alpha = 10;
+  unsigned int tx_timer = 0;
   while (1)
   {
     delay_ms (10);
 
     duty_cycle_value = adc_get_potentiometer_value ();
-    unsigned int alpha = 1;
-    unsigned int moving_average = 4095 / 2;
-    ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
-
-//    float value = ((float) duty_cycle_value) / 1.138;
-//    set_pwm_phase_a ((unsigned int) value);
-//    set_pwm_phase_b ((unsigned int) value);
-//    set_pwm_phase_c ((unsigned int) value);
-
-    int value = ((int) duty_cycle_value) - 2048;
-    value = value * 1000;
-    value = value / 2048;
+    duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
+    value = qfp_fdiv((float) duty_cycle_value, 4.096);
     motor_set_duty_cycle (value);
+
+//    // Start a new usart/bluetooth transmission at fixed intervals
+//    tx_timer = (tx_timer + 1) % TX_INTERVAL;
+//    if (tx_timer == 0) { usart1_send_data(); }
   }
 }
 

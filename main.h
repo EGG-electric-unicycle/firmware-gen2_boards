@@ -20,6 +20,7 @@
 #define HALL_SENSORS_PRIORITY			1
 #define	TIM3_PRIORITY				2
 #define	TIM2_PRIORITY				3
+#define	USART1_PRIORITY				4
 
 // State machine
 #define COAST			0
