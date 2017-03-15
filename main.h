@@ -57,6 +57,8 @@
 //#define MOTOR_GAMA	4490000 // 60 / L as noted on VESC mcconf_default.h // 1000 Não funciona; 10000 começa a funcionar
 //#define MOTOR_PWM_DT	0.0001
 
+#define MOTOR_SPEED__MAX_INVERTED_TIME	(1000000 - 1) // 1 erps = 10000 PWM cycles; 0.01 erps = 1000000 PWM cycles
+
 #define MOTOR_R		0.5
 #define MOTOR_L		0.001
 #define MOTOR_LINKAGE	0.0001

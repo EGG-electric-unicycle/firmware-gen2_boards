@@ -12,8 +12,9 @@
 #include "gpio.h"
 #include "stm32f10x_usart.h"
 
-char *tx_buffer;
-unsigned int tx_i;
+char tx_buffer[TX_LEN];
+unsigned int tx_i = 0; // start at first byte
+unsigned int tx_len = 0;
 
 void usart1_bluetooth_init(void)
 {
@@ -55,7 +56,7 @@ void usart1_bluetooth_init(void)
 
   /* Enable USARTy Receive and Transmit interrupts */
 //  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-  USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
+//  USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
 
   /* Enable the USART1 */
   USART_Cmd(USART1, ENABLE);
@@ -69,16 +70,17 @@ void USART1_IRQHandler()
   if((USART1->SR & USART_SR_TXE) != 0)
   {
     // If the Tx index is less than the Tx packet length...
-    if(tx_i < (TX_LEN - 1))
+    if(tx_i < (tx_len - 1))
     {
       // ...increment and transmit the next byte.
       tx_i++;
-      USART1->DR = tx_buffer[tx_i];
+      USART_SendData (USART1, tx_buffer[tx_i]);
     }
     else
     {
       // ...disable Tx interrupt until next packet.
-      USART1->CR1 &= ~USART_CR1_TXEIE;
+      USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+      tx_i = 0; // reset TX buffer index
     }
   }
 
@@ -107,15 +109,13 @@ void USART1_IRQHandler()
 //  }
 }
 
-void usart1_send_data(char *buffer)
+void usart1_send_data ()
 {
-  tx_buffer = buffer; // setup/copy the buffer address
-  tx_i = 0; // start at first byte
-
-  // Enable Tx interrupt.
-  USART1->CR1 |= USART_CR1_TXEIE;
+  while (tx_i) ;
   // Start transmission.
-  USART1->DR = tx_buffer[0];
+  USART_SendData (USART1, tx_buffer[tx_i]);
+  // Enable Tx interrupt.
+  USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
 }
 
 unsigned char usart1_send_char (unsigned char c)

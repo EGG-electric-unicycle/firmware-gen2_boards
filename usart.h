@@ -10,7 +10,10 @@
 #define _USART_H_
 
 #define TX_INTERVAL 10 // 10 * 10ms = 100ms
-#define TX_LEN 4 // PWM user input (4 bytes)
+#define TX_LEN 20 // PWM user input (4 bytes)
+
+extern char tx_buffer[TX_LEN];
+extern unsigned int tx_len;
 
 void usart1_bluetooth_init(void);
 unsigned char usart1_send_char (unsigned char c);

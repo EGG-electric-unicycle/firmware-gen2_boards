@@ -15,6 +15,9 @@
 #include "math.h"
 #include "main.h"
 
+unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
+unsigned int motor_inverse_speed__timer = 0;
+
 unsigned int adc_phase_a_current_offset;
 unsigned int adc_phase_c_current_offset;
 
@@ -71,6 +74,16 @@ unsigned int svm_table [36] =
   1004,
   1459
 };
+
+void calc_motor_speed (void)
+{
+  // calc the motor speed
+  if (motor_inverse_speed__timer > 100) // let's impose at least some minimum time
+  {
+    motor_speed_erps = MOTOR_SPEED__MAX_INVERTED_TIME / motor_inverse_speed__timer;
+    motor_inverse_speed__timer = 0;
+  }
+}
 
 // calc the DC offset value for the current ADCs
 void motor_calc_current_dc_offset (void)
@@ -221,9 +234,12 @@ void commutate (void)
       svm_table_index_a = 34; // 6
       svm_table_index_b = 10;
       svm_table_index_c = 22;
+
+      calc_motor_speed ();
       break;
 
       default:
+      return;
       break;
     }
   }
@@ -232,42 +248,45 @@ void commutate (void)
     switch (hall_sensors)
      {
       case 8192:
-        svm_table_index_a = 10; // 4
-        svm_table_index_b = 22;
-        svm_table_index_c = 34;
+      svm_table_index_a = 10; // 4
+      svm_table_index_b = 22;
+      svm_table_index_c = 34;
       break;
 
       case 24576:
-        svm_table_index_a = 4; // 5
-        svm_table_index_b = 16;
-        svm_table_index_c = 28;
+      svm_table_index_a = 4; // 5
+      svm_table_index_b = 16;
+      svm_table_index_c = 28;
       break;
 
       case 16384:
-        svm_table_index_a = 34; // 6
-        svm_table_index_b = 10;
-        svm_table_index_c = 22;
+      svm_table_index_a = 34; // 6
+      svm_table_index_b = 10;
+      svm_table_index_c = 22;
       break;
 
       case 20480:
-        svm_table_index_a = 28; // 1
-        svm_table_index_b = 4;
-        svm_table_index_c = 16;
+      svm_table_index_a = 28; // 1
+      svm_table_index_b = 4;
+      svm_table_index_c = 16;
       break;
 
       case 4096:
-        svm_table_index_a = 22; // 2
-        svm_table_index_b = 34;
-        svm_table_index_c = 10;
+      svm_table_index_a = 22; // 2
+      svm_table_index_b = 34;
+      svm_table_index_c = 10;
       break;
 
       case 12288:
-        svm_table_index_a = 16; // 3
-        svm_table_index_b = 28;
-        svm_table_index_c = 4;
+      svm_table_index_a = 16; // 3
+      svm_table_index_b = 28;
+      svm_table_index_c = 4;
+
+      calc_motor_speed ();
       break;
 
       default:
+      return;
       break;
     }
   }

@@ -218,13 +218,19 @@ int _write(int file, char *ptr, int len) {
     switch (file) {
     case STDOUT_FILENO: /*stdout*/
         for (n = 0; n < len; n++) {
-            usart1_send_char (*ptr++ & (uint16_t)0x01FF);
+//	  if (n >= TX_LEN) { break; } // do not send more than TX buffer size
+	  tx_buffer[n] = (*ptr++ & (uint16_t)0x01FF);
         }
+        tx_len = len;
+        usart1_send_data (); // start the transmission using interrupts
         break;
     case STDERR_FILENO: /* stderr */
-        for (n = 0; n < len; n++) {
-            usart1_send_char (*ptr++ & (uint16_t)0x01FF);
-        }
+	for (n = 0; n < len; n++) {
+//	    if (n >= TX_LEN) { break; } // do not send more than TX buffer size
+	    tx_buffer[n] = (*ptr++ & (uint16_t)0x01FF);
+	}
+	tx_len = len;
+	usart1_send_data (); // start the transmission using interrupts
         break;
     default:
         errno = EBADF;

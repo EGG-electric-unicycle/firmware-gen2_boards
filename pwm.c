@@ -12,6 +12,7 @@
 #include "main.h"
 #include "gpio.h"
 #include "pwm.h"
+#include "motor.h"
 
 unsigned int TIM_DirMode(TIM_TypeDef* TIMx)
 {
@@ -21,7 +22,7 @@ unsigned int TIM_DirMode(TIM_TypeDef* TIMx)
     return 0;
 }
 
-// This interrupt fire after the end on the PWM period (49us) - TIM1 UPdate event
+// This interrupt fire after the end on the PWM period - every 100 us
 void PWM_PERIOD_INTERRUPT (void)
 {
   if (!TIM_DirMode(TIM3)) // execute the next code only 1 time per each PWM cycle, and when upcounting
@@ -29,6 +30,20 @@ void PWM_PERIOD_INTERRUPT (void)
 //    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 //    FOC_control_loop ();
 //    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+
+
+    // count timer for calculation of motor speed
+    if (motor_inverse_speed__timer < MOTOR_SPEED__MAX_INVERTED_TIME)
+    {
+      motor_inverse_speed__timer++;
+    }
+    else
+    {
+      motor_inverse_speed__timer = 0;
+      motor_speed_erps = 0;
+
+      // TODO: start interrupt for commutation
+    }
   }
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM3, TIM_IT_Update);

@@ -30,6 +30,8 @@ struct Bldc_phase_state
 };
 
 extern struct Bldc_phase_state bldc_phase_state;
+extern unsigned int motor_speed_erps;
+extern unsigned int motor_inverse_speed__timer;
 
 void commutation_disable (void);
 void commutate (void);
