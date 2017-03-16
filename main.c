@@ -71,18 +71,16 @@ int main(void)
 
   motor_calc_current_dc_offset ();
 
-  int value = (int) (qfp_fsub(adc_get_potentiometer_value(), 4.096));
-  motor_set_duty_cycle (value);
-
   enable_phase_a ();
   enable_phase_b ();
   enable_phase_c ();
 
   commutate ();
 
-  unsigned int moving_average = 400;
-  unsigned int alpha = 10;
+  unsigned int moving_average = 0;
+  unsigned int alpha = 20;
   unsigned int tx_timer = 0;
+  int value;
   while (1)
   {
     delay_ms (200);
@@ -92,7 +90,67 @@ int main(void)
     value = qfp_fdiv((float) duty_cycle_value, 4.096);
     motor_set_duty_cycle (value);
 
-    printf ("%d; %d;\n", value, motor_speed_erps);
+
+    /* ********************************************************************
+     * FOC slow loop
+     */
+    // measure raw currents A and C and filter
+    int adc_phase_a_current_filtered;
+    int adc_phase_b_current_filtered;
+    int adc_phase_c_current_filtered;
+    unsigned int i = 0;
+    while (i++ < 10)
+    {
+      adc_phase_a_current_filtered += adc_get_phase_a_current_value ();
+      adc_phase_c_current_filtered += adc_get_phase_c_current_value ();
+      delay_ms (1);
+    }
+    adc_phase_a_current_filtered /= 10;
+    adc_phase_c_current_filtered /= 10;
+
+    // removing DC offset
+    adc_phase_a_current_filtered = adc_phase_a_current_filtered - adc_phase_a_current_offset;
+    adc_phase_c_current_filtered = adc_phase_c_current_filtered - adc_phase_c_current_offset;
+
+    /* Calc phase B current assuming balanced currents
+     * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
+     */
+    adc_phase_b_current_filtered = -adc_phase_a_current_filtered - adc_phase_c_current_filtered;
+
+    // calc ia, ib and Ic in Amps
+    float ia = qfp_fmul(adc_phase_a_current_filtered, ADC_CURRENT_GAIN_AMPS);
+    float ib = qfp_fmul(adc_phase_b_current_filtered, ADC_CURRENT_GAIN_AMPS);
+    float ic = qfp_fmul(adc_phase_c_current_filtered, ADC_CURRENT_GAIN_AMPS);
+
+    // ABC->dq Park transform
+    // ------------------------------------------------------------------------
+    float temp;
+    temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position));
+    temp += qfp_fmul(ib, qfp_fcos((motor_rotor_position) + degrees_to_radiands(120)));
+    temp += qfp_fmul(ic, qfp_fcos((motor_rotor_position) - degrees_to_radiands(120)));
+    float id = temp;
+
+    temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position));
+    temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position) + degrees_to_radiands(120)));
+    temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position) - degrees_to_radiands(120)));
+    float iq = temp;
+
+//    //---------------------------
+//    // Clarke transform assuming balanced currents
+//    float i_alpha = ia;
+//    float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ia), qfp_fmul(TWO_BY_SQRT3, ib));
+//
+//    id = qfp_fadd(qfp_fmul(ia, qfp_fcos(motor_rotor_position)), qfp_fmul(ib, qfp_fsin(motor_rotor_position)));
+//    iq = qfp_fadd(qfp_fmul(-ia, qfp_fsin(motor_rotor_position)), qfp_fmul(ib, qfp_fcos(motor_rotor_position)));
+
+    // Filter Id and Iq currents
+
+
+    // ------------------------------------------------------------------------
+
+//    printf ("%d; %d; %d; %d\n", value, motor_speed_erps, (int) (id * 100), (int) (iq*100));
+      printf ("%d, %f; %f\n", motor_speed_erps, id, iq);
+//      printf ("%d; %d\n", adc_phase_a_current_filtered, adc_phase_c_current_filtered);
 //    // Start a new usart/bluetooth transmission at fixed intervals
 //    tx_timer = (tx_timer + 1) % TX_INTERVAL;
 //    if (tx_timer == 0) { usart1_send_data(); }

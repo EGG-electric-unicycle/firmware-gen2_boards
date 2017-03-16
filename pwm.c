@@ -28,9 +28,8 @@ void PWM_PERIOD_INTERRUPT (void)
   if (!TIM_DirMode(TIM3)) // execute the next code only 1 time per each PWM cycle, and when upcounting
   {
 //    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-//    FOC_control_loop ();
+//    FOC_fast_loop ();
 //    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
-
 
     // count timer for calculation of motor speed
     if (motor_inverse_speed__timer < MOTOR_SPEED__MAX_INVERTED_TIME)

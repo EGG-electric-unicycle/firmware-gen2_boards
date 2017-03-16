@@ -17,6 +17,7 @@
 
 unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
 unsigned int motor_inverse_speed__timer = 0;
+float motor_rotor_position = 0; // in radians
 
 unsigned int adc_phase_a_current_offset;
 unsigned int adc_phase_c_current_offset;
@@ -75,6 +76,84 @@ unsigned int svm_table [36] =
   1459
 };
 
+//void FOC_fast_loop (void)
+//{
+//  // measure raw currents A and C
+//  unsigned int adc_phase_a_current = adc_get_phase_a_current_value ();
+//  unsigned int adc_phase_c_current = adc_get_phase_c_current_value ();
+//
+//  // filtering to remove possible signal noise
+//  unsigned int adc_phase_a_current_filtered;
+//  unsigned int adc_phase_c_current_filtered;
+//  static unsigned int moving_average_a_current = 0;
+//  static unsigned int moving_average_c_current = 0;
+//  const unsigned int moving_average_current_alpha = 80;
+//  adc_phase_a_current_filtered = ema_filter_uint32 (&adc_phase_a_current, &moving_average_a_current, &moving_average_current_alpha);
+//  adc_phase_c_current_filtered = ema_filter_uint32 (&adc_phase_c_current, &moving_average_c_current, &moving_average_current_alpha);
+//
+//  // removing DC offset
+//  int adc_phase_a_current_filtered_1;
+//  int adc_phase_c_current_filtered_1;
+//  adc_phase_a_current_filtered_1 = adc_phase_a_current_filtered - adc_phase_a_current_offset;
+//  adc_phase_c_current_filtered_1 = adc_phase_c_current_filtered - adc_phase_c_current_offset;
+//
+//  /* Calc phase B current assuming balanced currents
+//   * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
+//   */
+//  int adc_phase_b_current_filtered_1;
+//  adc_phase_b_current_filtered_1 = -adc_phase_a_current_filtered_1 - adc_phase_c_current_filtered_1;
+//
+//  // calc ia and ib in Amps
+//  float ia = qfp_fmul(adc_phase_a_current_filtered_1, ADC_CURRENT_GAIN_AMPS);
+//  float ib = qfp_fmul(adc_phase_b_current_filtered_1, ADC_CURRENT_GAIN_AMPS);
+//
+//  // Clarke transform assuming balanced currents
+//  float i_alpha = ia;
+//  float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ia), qfp_fmul(TWO_BY_SQRT3, ib));
+//
+//  // calc voltage on each motor phase
+//  int adc_v_bus = adc_get_battery_voltage_value ();
+//
+//  unsigned int adc_v_bus_filtered;
+//  static unsigned int moving_average_adc_v_bus = 0;
+//  const unsigned int moving_average_v_bus_alpha = 80;
+//  adc_v_bus_filtered = ema_filter_uint32 (&adc_v_bus, &moving_average_adc_v_bus, &moving_average_v_bus_alpha); // filtering to remove possible signal noise
+//
+//  float v_bus = qfp_fmul(adc_v_bus, ADC_BATTERY_VOLTAGE_GAIN_VOLTS); // calc v_bus in volts
+//
+//  float va = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_a_duty_cycle)), 100000); // needs to be divided by 100000 due to int phase_a_duty_cycle
+//  float vb = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_b_duty_cycle)), 100000);
+//  float vc = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_c_duty_cycle)), 100000);
+//
+//  // Clarke transform for the voltages on each phase
+//  float v_alpha = qfp_fsub(qfp_fsub(qfp_fmul((2.0 / 3.0), va), qfp_fmul((1.0 / 3.0), vb)), qfp_fmul((1.0 / 3.0), vc));
+//  float v_beta = qfp_fsub(qfp_fmul(ONE_BY_SQRT3, vb), qfp_fmul(ONE_BY_SQRT3, vc));
+//
+//  observer_update(v_alpha,
+//		  v_beta,
+//		  i_alpha,
+//		  i_beta,
+//		  MOTOR_PWM_DT,
+//		  &m_observer_x1,
+//		  &m_observer_x2,
+//		  &m_phase_now_observer);
+//
+//  float angle_degrees = radians_to_degrees(m_phase_now_observer);
+//  if (angle_degrees > 0 && angle_degrees < 60)
+//  {
+//    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+//  }
+//  else
+//  {
+//    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+//  }
+//
+//  // Run PLL for speed estimation
+////  pll_run(m_phase_now_observer, MOTOR_PWM_DT, &m_pll_phase, &m_pll_speed);
+//
+//}
+
+
 void calc_motor_speed (void)
 {
   // calc the motor speed
@@ -88,14 +167,12 @@ void calc_motor_speed (void)
 // calc the DC offset value for the current ADCs
 void motor_calc_current_dc_offset (void)
 {
-  static unsigned int i;
-  while (1)
+  unsigned int i = 0;
+  while (i++ < 200)
   {
     adc_phase_a_current_offset += adc_get_phase_a_current_value ();
     adc_phase_c_current_offset += adc_get_phase_c_current_value ();
     delay_ms (10);
-    if (i++ > 199)
-      break;
   }
   adc_phase_a_current_offset /= 200;
   adc_phase_c_current_offset /= 200;
@@ -204,36 +281,42 @@ void commutate (void)
       svm_table_index_a = 28; // 1
       svm_table_index_b = 4;
       svm_table_index_c = 16;
+      motor_rotor_position = degrees_to_radiands(60);
       break;
 
       case 24576:
       svm_table_index_a = 22; // 2
       svm_table_index_b = 34;
       svm_table_index_c = 10;
+      motor_rotor_position = degrees_to_radiands(120);
       break;
 
       case 16384:
       svm_table_index_a = 16; // 3
       svm_table_index_b = 28;
       svm_table_index_c = 4;
+      motor_rotor_position = degrees_to_radiands(180);
       break;
 
       case 20480:
       svm_table_index_a = 10; // 4
       svm_table_index_b = 22;
       svm_table_index_c = 34;
+      motor_rotor_position = degrees_to_radiands(240);
       break;
 
       case 4096:
       svm_table_index_a = 4; // 5
       svm_table_index_b = 16;
       svm_table_index_c = 28;
+      motor_rotor_position = degrees_to_radiands(310);
       break;
 
       case 12288:
       svm_table_index_a = 34; // 6
       svm_table_index_b = 10;
       svm_table_index_c = 22;
+      motor_rotor_position = degrees_to_radiands(0);
 
       calc_motor_speed ();
       break;
@@ -251,36 +334,42 @@ void commutate (void)
       svm_table_index_a = 10; // 4
       svm_table_index_b = 22;
       svm_table_index_c = 34;
+      motor_rotor_position = degrees_to_radiands(240);
       break;
 
       case 24576:
       svm_table_index_a = 4; // 5
       svm_table_index_b = 16;
       svm_table_index_c = 28;
+      motor_rotor_position = degrees_to_radiands(310);
       break;
 
       case 16384:
       svm_table_index_a = 34; // 6
       svm_table_index_b = 10;
       svm_table_index_c = 22;
+      motor_rotor_position = degrees_to_radiands(0);
       break;
 
       case 20480:
       svm_table_index_a = 28; // 1
       svm_table_index_b = 4;
       svm_table_index_c = 16;
+      motor_rotor_position = degrees_to_radiands(60);
       break;
 
       case 4096:
       svm_table_index_a = 22; // 2
       svm_table_index_b = 34;
       svm_table_index_c = 10;
+      motor_rotor_position = degrees_to_radiands(120);
       break;
 
       case 12288:
       svm_table_index_a = 16; // 3
       svm_table_index_b = 28;
       svm_table_index_c = 4;
+      motor_rotor_position = degrees_to_radiands(180);
 
       calc_motor_speed ();
       break;
