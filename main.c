@@ -48,7 +48,7 @@ void initialize (void)
   gpio_init ();
   adc_init ();
   pwm_init ();
-//  buzzer_init ();
+  buzzer_init ();
   usart1_bluetooth_init ();
   hall_sensor_init ();
 //  MPU6050_I2C_Init ();
@@ -83,7 +83,7 @@ int main(void)
   int value;
   while (1)
   {
-    delay_ms (200);
+    delay_ms (10);
 
     duty_cycle_value = adc_get_potentiometer_value ();
     duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
@@ -98,15 +98,9 @@ int main(void)
     int adc_phase_a_current_filtered;
     int adc_phase_b_current_filtered;
     int adc_phase_c_current_filtered;
-    unsigned int i = 0;
-    while (i++ < 10)
-    {
-      adc_phase_a_current_filtered += adc_get_phase_a_current_value ();
-      adc_phase_c_current_filtered += adc_get_phase_c_current_value ();
-      delay_ms (1);
-    }
-    adc_phase_a_current_filtered /= 10;
-    adc_phase_c_current_filtered /= 10;
+
+    adc_phase_a_current_filtered = adc_get_phase_a_current_value ();
+    adc_phase_c_current_filtered = adc_get_phase_c_current_value ();
 
     // removing DC offset
     adc_phase_a_current_filtered = adc_phase_a_current_filtered - adc_phase_a_current_offset;
@@ -122,38 +116,50 @@ int main(void)
     float ib = qfp_fmul(adc_phase_b_current_filtered, ADC_CURRENT_GAIN_AMPS);
     float ic = qfp_fmul(adc_phase_c_current_filtered, ADC_CURRENT_GAIN_AMPS);
 
-    // ABC->dq Park transform
+//    // ABC->dq Park transform
     // ------------------------------------------------------------------------
     float temp;
     temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position));
     temp += qfp_fmul(ib, qfp_fcos((motor_rotor_position) + degrees_to_radiands(120)));
     temp += qfp_fmul(ic, qfp_fcos((motor_rotor_position) - degrees_to_radiands(120)));
-    float id = temp;
+    float id = qfp_fmul(temp, 2.0/3.0);
 
     temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position));
     temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position) + degrees_to_radiands(120)));
     temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position) - degrees_to_radiands(120)));
-    float iq = temp;
+    float iq = qfp_fmul(temp, 2.0/3.0);
 
-//    //---------------------------
-//    // Clarke transform assuming balanced currents
-//    float i_alpha = ia;
+    //---------------------------
+    // Clarke transform assuming balanced currents
+    float i_alpha = ia;
+    float i_beta = qfp_fmul(qfp_fsub(ib, ic), ONE_BY_SQRT3);
 //    float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ia), qfp_fmul(TWO_BY_SQRT3, ib));
-//
-//    id = qfp_fadd(qfp_fmul(ia, qfp_fcos(motor_rotor_position)), qfp_fmul(ib, qfp_fsin(motor_rotor_position)));
-//    iq = qfp_fadd(qfp_fmul(-ia, qfp_fsin(motor_rotor_position)), qfp_fmul(ib, qfp_fcos(motor_rotor_position)));
+
+    id = qfp_fadd(qfp_fmul(ia, qfp_fcos(motor_rotor_position)), qfp_fmul(ib, qfp_fsin(motor_rotor_position)));
+    iq = qfp_fadd(qfp_fmul(-ia, qfp_fsin(motor_rotor_position)), qfp_fmul(ib, qfp_fcos(motor_rotor_position)));
 
     // Filter Id and Iq currents
-
+    static float alpha = 5.0;
+    static float moving_average_id = 0.0;
+    static float moving_average_iq = 0.0;
+    id = ema_filter_float(&id, &moving_average_id, &alpha);
+    iq = ema_filter_float(&iq, &moving_average_iq, &alpha);
 
     // ------------------------------------------------------------------------
 
+    static unsigned int loop_timer = 0;
+    loop_timer++;
+    if (loop_timer > 10)
+    {
+      loop_timer = 0;
+
 //    printf ("%d; %d; %d; %d\n", value, motor_speed_erps, (int) (id * 100), (int) (iq*100));
-      printf ("%d, %f; %f\n", motor_speed_erps, id, iq);
+      printf ("%d, %.2f; %.2f\n", motor_speed_erps, id, iq);
 //      printf ("%d; %d\n", adc_phase_a_current_filtered, adc_phase_c_current_filtered);
 //    // Start a new usart/bluetooth transmission at fixed intervals
 //    tx_timer = (tx_timer + 1) % TX_INTERVAL;
 //    if (tx_timer == 0) { usart1_send_data(); }
+    }
   }
 }
 

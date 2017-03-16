@@ -9,6 +9,7 @@
 #include "stm32f10x.h"
 #include "stm32f10x_tim.h"
 #include "stm32f10x_rcc.h"
+#include "stm32f10x_adc.h"
 #include "main.h"
 #include "gpio.h"
 #include "pwm.h"
@@ -27,9 +28,13 @@ void PWM_PERIOD_INTERRUPT (void)
 {
   if (!TIM_DirMode(TIM3)) // execute the next code only 1 time per each PWM cycle, and when upcounting
   {
-//    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 //    FOC_fast_loop ();
-//    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+
+    // Start ADCs conversions
+    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+
+    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 
     // count timer for calculation of motor speed
     if (motor_inverse_speed__timer < MOTOR_SPEED__MAX_INVERTED_TIME)

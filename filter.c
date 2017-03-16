@@ -15,3 +15,9 @@ unsigned int ema_filter_uint32 (unsigned int *current_value, unsigned int *expon
   *exponential_moving_average = ((*current_value * *ema_alpha) + (*exponential_moving_average * (100 - *ema_alpha))) / 100;
   return *exponential_moving_average;
 }
+
+float ema_filter_float (float *current_value, float *exponential_moving_average, float *ema_alpha)
+{
+  *exponential_moving_average = ((*current_value * *ema_alpha) + (*exponential_moving_average * (100 - *ema_alpha))) / 100;
+  return *exponential_moving_average;
+}
