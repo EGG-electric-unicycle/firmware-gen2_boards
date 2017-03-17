@@ -16,8 +16,12 @@
 #include "main.h"
 
 unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
-unsigned int motor_inverse_speed__timer = 0;
-float motor_rotor_position = 0; // in radians
+unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
+unsigned int PWM_cycles_counter = 0;
+unsigned int interpolation_PWM_cycles_counter = 0;
+unsigned int motor_rotor_position = 0; // in degrees
+unsigned int motor_rotor_absolute_position = 0; // in degrees
+unsigned int interpolation_counter = 0;
 
 unsigned int adc_phase_a_current_offset;
 unsigned int adc_phase_c_current_offset;
@@ -35,133 +39,409 @@ int duty_cycle = 0;
 // Space Vector Modulation PWMs values, please read this blog message:
 // http://www.berryjam.eu/2015/04/driving-bldc-gimbals-at-super-slow-speeds-with-arduino/
 // Please see file: BLDC_SPWM_Lookup_tables.ods
-
-unsigned int svm_table [36] =
+#define SVM_TABLE_LEN 360
+unsigned int svm_table [SVM_TABLE_LEN] =
 {
-  1928,
-  2396,
-  2851,
-  3277,
-  3392,
-  3462,
-  3486,
-  3462,
-  3392,
-  3277,
-  3392,
-  3462,
-  3486,
-  3462,
-  3392,
-  3277,
-  2851,
-  2396,
-  1928,
-  1459,
-  1004,
-  578,
-  463,
-  393,
-  369,
-  393,
-  463,
-  578,
-  463,
-  393,
-  369,
-  393,
-  463,
-  578,
-  1004,
-  1459
+    1847	,
+    1894	,
+    1941	,
+    1988	,
+    2035	,
+    2082	,
+    2128	,
+    2175	,
+    2222	,
+    2268	,
+    2315	,
+    2361	,
+    2407	,
+    2453	,
+    2498	,
+    2544	,
+    2589	,
+    2634	,
+    2678	,
+    2723	,
+    2767	,
+    2811	,
+    2854	,
+    2897	,
+    2940	,
+    2983	,
+    3025	,
+    3067	,
+    3108	,
+    3149	,
+    3163	,
+    3175	,
+    3188	,
+    3200	,
+    3212	,
+    3223	,
+    3234	,
+    3244	,
+    3254	,
+    3264	,
+    3273	,
+    3282	,
+    3290	,
+    3298	,
+    3305	,
+    3312	,
+    3318	,
+    3324	,
+    3329	,
+    3334	,
+    3339	,
+    3343	,
+    3346	,
+    3349	,
+    3352	,
+    3354	,
+    3356	,
+    3357	,
+    3358	,
+    3358	,
+    3358	,
+    3357	,
+    3356	,
+    3354	,
+    3352	,
+    3349	,
+    3346	,
+    3343	,
+    3339	,
+    3334	,
+    3329	,
+    3324	,
+    3318	,
+    3312	,
+    3305	,
+    3298	,
+    3290	,
+    3282	,
+    3273	,
+    3264	,
+    3254	,
+    3244	,
+    3234	,
+    3223	,
+    3212	,
+    3200	,
+    3188	,
+    3175	,
+    3163	,
+    3149	,
+    3163	,
+    3175	,
+    3188	,
+    3200	,
+    3212	,
+    3223	,
+    3234	,
+    3244	,
+    3254	,
+    3264	,
+    3273	,
+    3282	,
+    3290	,
+    3298	,
+    3305	,
+    3312	,
+    3318	,
+    3324	,
+    3329	,
+    3334	,
+    3339	,
+    3343	,
+    3346	,
+    3349	,
+    3352	,
+    3354	,
+    3356	,
+    3357	,
+    3358	,
+    3358	,
+    3358	,
+    3357	,
+    3356	,
+    3354	,
+    3352	,
+    3349	,
+    3346	,
+    3343	,
+    3339	,
+    3334	,
+    3329	,
+    3324	,
+    3318	,
+    3312	,
+    3305	,
+    3298	,
+    3290	,
+    3282	,
+    3273	,
+    3264	,
+    3254	,
+    3244	,
+    3234	,
+    3223	,
+    3212	,
+    3200	,
+    3188	,
+    3175	,
+    3163	,
+    3149	,
+    3108	,
+    3067	,
+    3025	,
+    2983	,
+    2940	,
+    2897	,
+    2854	,
+    2811	,
+    2767	,
+    2723	,
+    2678	,
+    2634	,
+    2589	,
+    2544	,
+    2498	,
+    2453	,
+    2407	,
+    2361	,
+    2315	,
+    2268	,
+    2222	,
+    2175	,
+    2128	,
+    2082	,
+    2035	,
+    1988	,
+    1941	,
+    1894	,
+    1847	,
+    1800	,
+    1752	,
+    1705	,
+    1658	,
+    1611	,
+    1564	,
+    1517	,
+    1471	,
+    1424	,
+    1377	,
+    1331	,
+    1284	,
+    1238	,
+    1192	,
+    1146	,
+    1101	,
+    1055	,
+    1010	,
+    965	,
+    921	,
+    876	,
+    832	,
+    788	,
+    745	,
+    702	,
+    659	,
+    616	,
+    574	,
+    532	,
+    491	,
+    450	,
+    436	,
+    424	,
+    411	,
+    399	,
+    387	,
+    376	,
+    365	,
+    355	,
+    345	,
+    335	,
+    326	,
+    317	,
+    309	,
+    301	,
+    294	,
+    287	,
+    281	,
+    275	,
+    270	,
+    265	,
+    260	,
+    256	,
+    253	,
+    250	,
+    247	,
+    245	,
+    243	,
+    242	,
+    241	,
+    241	,
+    241	,
+    242	,
+    243	,
+    245	,
+    247	,
+    250	,
+    253	,
+    256	,
+    260	,
+    265	,
+    270	,
+    275	,
+    281	,
+    287	,
+    294	,
+    301	,
+    309	,
+    317	,
+    326	,
+    335	,
+    345	,
+    355	,
+    365	,
+    376	,
+    387	,
+    399	,
+    411	,
+    424	,
+    436	,
+    450	,
+    436	,
+    424	,
+    411	,
+    399	,
+    387	,
+    376	,
+    365	,
+    355	,
+    345	,
+    335	,
+    326	,
+    317	,
+    309	,
+    301	,
+    294	,
+    287	,
+    281	,
+    275	,
+    270	,
+    265	,
+    260	,
+    256	,
+    253	,
+    250	,
+    247	,
+    245	,
+    243	,
+    242	,
+    241	,
+    241	,
+    241	,
+    242	,
+    243	,
+    245	,
+    247	,
+    250	,
+    253	,
+    256	,
+    260	,
+    265	,
+    270	,
+    275	,
+    281	,
+    287	,
+    294	,
+    301	,
+    309	,
+    317	,
+    326	,
+    335	,
+    345	,
+    355	,
+    365	,
+    376	,
+    387	,
+    399	,
+    411	,
+    424	,
+    436	,
+    450	,
+    491	,
+    532	,
+    574	,
+    616	,
+    659	,
+    702	,
+    745	,
+    788	,
+    832	,
+    876	,
+    921	,
+    965	,
+    1010	,
+    1055	,
+    1101	,
+    1146	,
+    1192	,
+    1238	,
+    1284	,
+    1331	,
+    1377	,
+    1424	,
+    1471	,
+    1517	,
+    1564	,
+    1611	,
+    1658	,
+    1705	,
+    1752
 };
 
-//void FOC_fast_loop (void)
-//{
-//  // measure raw currents A and C
-//  unsigned int adc_phase_a_current = adc_get_phase_a_current_value ();
-//  unsigned int adc_phase_c_current = adc_get_phase_c_current_value ();
-//
-//  // filtering to remove possible signal noise
-//  unsigned int adc_phase_a_current_filtered;
-//  unsigned int adc_phase_c_current_filtered;
-//  static unsigned int moving_average_a_current = 0;
-//  static unsigned int moving_average_c_current = 0;
-//  const unsigned int moving_average_current_alpha = 80;
-//  adc_phase_a_current_filtered = ema_filter_uint32 (&adc_phase_a_current, &moving_average_a_current, &moving_average_current_alpha);
-//  adc_phase_c_current_filtered = ema_filter_uint32 (&adc_phase_c_current, &moving_average_c_current, &moving_average_current_alpha);
-//
-//  // removing DC offset
-//  int adc_phase_a_current_filtered_1;
-//  int adc_phase_c_current_filtered_1;
-//  adc_phase_a_current_filtered_1 = adc_phase_a_current_filtered - adc_phase_a_current_offset;
-//  adc_phase_c_current_filtered_1 = adc_phase_c_current_filtered - adc_phase_c_current_offset;
-//
-//  /* Calc phase B current assuming balanced currents
-//   * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
-//   */
-//  int adc_phase_b_current_filtered_1;
-//  adc_phase_b_current_filtered_1 = -adc_phase_a_current_filtered_1 - adc_phase_c_current_filtered_1;
-//
-//  // calc ia and ib in Amps
-//  float ia = qfp_fmul(adc_phase_a_current_filtered_1, ADC_CURRENT_GAIN_AMPS);
-//  float ib = qfp_fmul(adc_phase_b_current_filtered_1, ADC_CURRENT_GAIN_AMPS);
-//
-//  // Clarke transform assuming balanced currents
-//  float i_alpha = ia;
-//  float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ia), qfp_fmul(TWO_BY_SQRT3, ib));
-//
-//  // calc voltage on each motor phase
-//  int adc_v_bus = adc_get_battery_voltage_value ();
-//
-//  unsigned int adc_v_bus_filtered;
-//  static unsigned int moving_average_adc_v_bus = 0;
-//  const unsigned int moving_average_v_bus_alpha = 80;
-//  adc_v_bus_filtered = ema_filter_uint32 (&adc_v_bus, &moving_average_adc_v_bus, &moving_average_v_bus_alpha); // filtering to remove possible signal noise
-//
-//  float v_bus = qfp_fmul(adc_v_bus, ADC_BATTERY_VOLTAGE_GAIN_VOLTS); // calc v_bus in volts
-//
-//  float va = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_a_duty_cycle)), 100000); // needs to be divided by 100000 due to int phase_a_duty_cycle
-//  float vb = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_b_duty_cycle)), 100000);
-//  float vc = qfp_fdiv(qfp_fmul(v_bus, ((float) phase_c_duty_cycle)), 100000);
-//
-//  // Clarke transform for the voltages on each phase
-//  float v_alpha = qfp_fsub(qfp_fsub(qfp_fmul((2.0 / 3.0), va), qfp_fmul((1.0 / 3.0), vb)), qfp_fmul((1.0 / 3.0), vc));
-//  float v_beta = qfp_fsub(qfp_fmul(ONE_BY_SQRT3, vb), qfp_fmul(ONE_BY_SQRT3, vc));
-//
-//  observer_update(v_alpha,
-//		  v_beta,
-//		  i_alpha,
-//		  i_beta,
-//		  MOTOR_PWM_DT,
-//		  &m_observer_x1,
-//		  &m_observer_x2,
-//		  &m_phase_now_observer);
-//
-//  float angle_degrees = radians_to_degrees(m_phase_now_observer);
-//  if (angle_degrees > 0 && angle_degrees < 60)
-//  {
-//    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-//  }
-//  else
-//  {
-//    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
-//  }
-//
-//  // Run PLL for speed estimation
-////  pll_run(m_phase_now_observer, MOTOR_PWM_DT, &m_pll_phase, &m_pll_speed);
-//
-//}
-
-
-void calc_motor_speed (void)
+void FOC_fast_loop (void)
 {
-  // calc the motor speed
-  if (motor_inverse_speed__timer > 100) // let's impose at least some minimum time
+  // count number of fast loops / PWM cycles
+  if (PWM_cycles_counter < PWM_CYCLES_COUNTER_MAX)
   {
-    motor_speed_erps = MOTOR_SPEED__MAX_INVERTED_TIME / motor_inverse_speed__timer;
-    motor_inverse_speed__timer = 0;
+    PWM_cycles_counter++;
   }
+  else
+  {
+    PWM_cycles_counter = 0;
+    motor_speed_erps = 0;
+    PWM_cycles_per_SVM_TABLE_step = PWM_CYCLES_COUNTER_MAX / SVM_TABLE_LEN;
+  }
+
+  // calculate the interpolation angle
+  interpolation_PWM_cycles_counter++;
+  if (interpolation_PWM_cycles_counter > PWM_cycles_per_SVM_TABLE_step)
+  {
+    interpolation_PWM_cycles_counter = 0;
+    if (interpolation_counter <= 60) // limit max interpolation value/angle
+    {
+      interpolation_counter++;
+      if (motor_rotor_position > 0)
+      {
+	motor_rotor_position--;
+      }
+      else
+      {
+	motor_rotor_position = 359;
+      }
+    }
+    else
+    {
+      // keep this value static over the loops, when interpolation_position >= 60
+      interpolation_PWM_cycles_counter = PWM_cycles_per_SVM_TABLE_step;
+    }
+  }
+
+  apply_duty_cycle ();
 }
 
 // calc the DC offset value for the current ADCs
@@ -188,7 +468,7 @@ void apply_duty_cycle (void)
     duty_cycle_value *= -1;
 
   // scale and apply _duty_cycle
-  value = svm_table[svm_table_index_a];
+  value = svm_table[motor_rotor_position];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
@@ -203,7 +483,18 @@ void apply_duty_cycle (void)
   }
   set_pwm_phase_a (value);
 
-  value = svm_table[svm_table_index_b];
+  // add 120 degrees and limit
+  unsigned int temp = motor_rotor_position + 120;
+  unsigned int temp_motor_rotor_position;
+  if (temp > 359)
+  {
+    temp_motor_rotor_position = (temp - 359) - 1;
+  }
+  else
+  {
+    temp_motor_rotor_position = temp;
+  }
+  value = svm_table[temp_motor_rotor_position];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
@@ -218,7 +509,17 @@ void apply_duty_cycle (void)
   }
   set_pwm_phase_b (value);
 
-  value = svm_table[svm_table_index_c];
+  // subtract 120 degrees and limit
+  int temp1 = motor_rotor_position - 120;
+  if (temp1 < 0)
+  {
+    temp_motor_rotor_position = (unsigned int) (360 + temp1); // temp is negative
+  }
+  else
+  {
+    temp_motor_rotor_position = (unsigned int) temp1;
+  }
+  value = svm_table[temp_motor_rotor_position];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
@@ -232,30 +533,6 @@ void apply_duty_cycle (void)
     value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
   }
   set_pwm_phase_c (value);
-}
-
-void svm_table_index_dec (void)
-{
-  if (svm_table_index_a > 0) svm_table_index_a--;
-  else svm_table_index_a = 35;
-
-  if (svm_table_index_b > 0) svm_table_index_b--;
-  else svm_table_index_b = 35;
-
-  if (svm_table_index_c > 0) svm_table_index_c--;
-  else svm_table_index_c = 35;
-}
-
-void svm_table_index_inc (void)
-{
-  if (svm_table_index_a < 35) svm_table_index_a++;
-  else svm_table_index_a = 0;
-
-  if (svm_table_index_b < 35) svm_table_index_b++;
-  else svm_table_index_b = 0;
-
-  if (svm_table_index_c < 35) svm_table_index_c++;
-  else svm_table_index_c = 0;
 }
 
 void commutate (void)
@@ -272,112 +549,102 @@ void commutate (void)
   else
     _direction = LEFT;
 
+_direction = LEFT;
+
   if (_direction == RIGHT)
   {
-    // the next sequence was obtained experimentaly
-    switch (hall_sensors)
-    {
-      case 8192:
-      svm_table_index_a = 28; // 1
-      svm_table_index_b = 4;
-      svm_table_index_c = 16;
-      motor_rotor_position = degrees_to_radiands(60);
-      break;
-
-      case 24576:
-      svm_table_index_a = 22; // 2
-      svm_table_index_b = 34;
-      svm_table_index_c = 10;
-      motor_rotor_position = degrees_to_radiands(120);
-      break;
-
-      case 16384:
-      svm_table_index_a = 16; // 3
-      svm_table_index_b = 28;
-      svm_table_index_c = 4;
-      motor_rotor_position = degrees_to_radiands(180);
-      break;
-
-      case 20480:
-      svm_table_index_a = 10; // 4
-      svm_table_index_b = 22;
-      svm_table_index_c = 34;
-      motor_rotor_position = degrees_to_radiands(240);
-      break;
-
-      case 4096:
-      svm_table_index_a = 4; // 5
-      svm_table_index_b = 16;
-      svm_table_index_c = 28;
-      motor_rotor_position = degrees_to_radiands(310);
-      break;
-
-      case 12288:
-      svm_table_index_a = 34; // 6
-      svm_table_index_b = 10;
-      svm_table_index_c = 22;
-      motor_rotor_position = degrees_to_radiands(0);
-
-      calc_motor_speed ();
-      break;
-
-      default:
-      return;
-      break;
-    }
+//    // the next sequence was obtained experimentaly
+//    switch (hall_sensors)
+//    {
+//      case 8192:
+//      svm_table_index_a = 28; // 1
+//      svm_table_index_b = 4;
+//      svm_table_index_c = 16;
+//      motor_rotor_position = degrees_to_radiands(60);
+//      break;
+//
+//      case 24576:
+//      svm_table_index_a = 22; // 2
+//      svm_table_index_b = 34;
+//      svm_table_index_c = 10;
+//      motor_rotor_position = degrees_to_radiands(120);
+//      break;
+//
+//      case 16384:
+//      svm_table_index_a = 16; // 3
+//      svm_table_index_b = 28;
+//      svm_table_index_c = 4;
+//      motor_rotor_position = degrees_to_radiands(180);
+//      break;
+//
+//      case 20480:
+//      svm_table_index_a = 10; // 4
+//      svm_table_index_b = 22;
+//      svm_table_index_c = 34;
+//      motor_rotor_position = degrees_to_radiands(240);
+//      break;
+//
+//      case 4096:
+//      svm_table_index_a = 4; // 5
+//      svm_table_index_b = 16;
+//      svm_table_index_c = 28;
+//      motor_rotor_position = degrees_to_radiands(310);
+//      break;
+//
+//      case 12288:
+//      svm_table_index_a = 34; // 6
+//      svm_table_index_b = 10;
+//      svm_table_index_c = 22;
+//      motor_rotor_position = degrees_to_radiands(0);
+//
+//      calc_motor_speed ();
+//      break;
+//
+//      default:
+//      return;
+//      break;
+//    }
   }
   else if (_direction == LEFT)
   {
     switch (hall_sensors)
-     {
+    {
       case 8192:
-      svm_table_index_a = 10; // 4
-      svm_table_index_b = 22;
-      svm_table_index_c = 34;
-      motor_rotor_position = degrees_to_radiands(240);
+      motor_rotor_absolute_position = 100; // 4
       break;
 
       case 24576:
-      svm_table_index_a = 4; // 5
-      svm_table_index_b = 16;
-      svm_table_index_c = 28;
-      motor_rotor_position = degrees_to_radiands(310);
+      motor_rotor_absolute_position = 40; // 5
       break;
 
       case 16384:
-      svm_table_index_a = 34; // 6
-      svm_table_index_b = 10;
-      svm_table_index_c = 22;
-      motor_rotor_position = degrees_to_radiands(0);
+      motor_rotor_absolute_position = 340; // 6
       break;
 
       case 20480:
-      svm_table_index_a = 28; // 1
-      svm_table_index_b = 4;
-      svm_table_index_c = 16;
-      motor_rotor_position = degrees_to_radiands(60);
+      motor_rotor_absolute_position = 280; // 1
       break;
 
       case 4096:
-      svm_table_index_a = 22; // 2
-      svm_table_index_b = 34;
-      svm_table_index_c = 10;
-      motor_rotor_position = degrees_to_radiands(120);
+      motor_rotor_absolute_position = 220; // 2
       break;
 
       case 12288:
-      svm_table_index_a = 16; // 3
-      svm_table_index_b = 28;
-      svm_table_index_c = 4;
-      motor_rotor_position = degrees_to_radiands(180);
+      motor_rotor_absolute_position = 160; // 3
 
-      calc_motor_speed ();
+      motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
+      PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+      PWM_cycles_counter = 0;
       break;
 
       default:
       return;
       break;
     }
+
+    motor_rotor_position = motor_rotor_absolute_position;
+    interpolation_counter = 0;
+    interpolation_PWM_cycles_counter = 0;
   }
 
     apply_duty_cycle ();

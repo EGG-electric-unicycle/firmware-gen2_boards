@@ -17,8 +17,8 @@
 // Define for the NVIC IRQChannel Preemption Priority
 // lower number has higher priority
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
-#define HALL_SENSORS_PRIORITY			1
 #define	TIM3_PRIORITY				2
+#define HALL_SENSORS_PRIORITY			1
 #define	TIM2_PRIORITY				3
 #define	USART1_PRIORITY				4
 
@@ -47,7 +47,7 @@
 // about 12.7mv for each 1A
 
 #define ADC_CURRENT_OFFSET		2131 // represents 1.71V when current = 0
-#define ADC_CURRENT_GAIN_AMPS		0.0634 //
+#define ADC_CURRENT_GAIN_AMPS		0.0190 // original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
 #define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
 
 // VESC Lizardmech
@@ -57,7 +57,7 @@
 //#define MOTOR_GAMA	4490000 // 60 / L as noted on VESC mcconf_default.h // 1000 Não funciona; 10000 começa a funcionar
 //#define MOTOR_PWM_DT	0.0001
 
-#define MOTOR_SPEED__MAX_INVERTED_TIME	(1000000 - 1) // 1 erps = 10000 PWM cycles; 0.01 erps = 1000000 PWM cycles
+#define PWM_CYCLES_COUNTER_MAX	(46000 - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
 
 #define MOTOR_R		0.5
 #define MOTOR_L		0.001

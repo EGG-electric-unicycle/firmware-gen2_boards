@@ -23,31 +23,18 @@ unsigned int TIM_DirMode(TIM_TypeDef* TIMx)
     return 0;
 }
 
-// This interrupt fire after the end on the PWM period - every 100 us
+// This interrupt fire 2 times on every PWM period - every 50 us
 void PWM_PERIOD_INTERRUPT (void)
 {
-  if (!TIM_DirMode(TIM3)) // execute the next code only 1 time per each PWM cycle, and when upcounting
+  // execute the next code only 1 time on evey two PWM cycles (when upcounting) - at the middle of PWM cycle, 100us
+  if (!TIM_DirMode(TIM3))
   {
-    GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-//    FOC_fast_loop ();
+//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+    FOC_fast_loop ();
 
-    // Start ADCs conversions
-    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+    ADC_SoftwareStartConvCmd(ADC1, ENABLE); // Start ADCs conversions - here at the middle of PWM cycle
 
-    GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
-
-    // count timer for calculation of motor speed
-    if (motor_inverse_speed__timer < MOTOR_SPEED__MAX_INVERTED_TIME)
-    {
-      motor_inverse_speed__timer++;
-    }
-    else
-    {
-      motor_inverse_speed__timer = 0;
-      motor_speed_erps = 0;
-
-      // TODO: start interrupt for commutation
-    }
+//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM3, TIM_IT_Update);

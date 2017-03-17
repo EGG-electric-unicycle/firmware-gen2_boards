@@ -29,13 +29,15 @@ struct Bldc_phase_state
   unsigned int c;
 };
 
+#define DEGRES_120_IN_RADIANS 	(120.0 * (M_PI/180.0))
+
 #define degrees_to_radiands(angle) qfp_fmul(angle, M_PI/180.0)
 #define radians_to_degrees(angle) qfp_fmul(angle, 180.0/M_PI)
 
 extern struct Bldc_phase_state bldc_phase_state;
 extern unsigned int motor_speed_erps;
-extern unsigned int motor_inverse_speed__timer;
-extern float motor_rotor_position;
+extern unsigned int PWM_cycles_counter;
+extern unsigned int motor_rotor_position;
 
 extern unsigned int adc_phase_a_current_offset;
 extern unsigned int adc_phase_c_current_offset;
