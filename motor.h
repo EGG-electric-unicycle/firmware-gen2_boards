@@ -38,6 +38,7 @@ extern struct Bldc_phase_state bldc_phase_state;
 extern unsigned int motor_speed_erps;
 extern unsigned int PWM_cycles_counter;
 extern unsigned int motor_rotor_position;
+extern unsigned int position_correction_value;
 
 extern unsigned int adc_phase_a_current_offset;
 extern unsigned int adc_phase_c_current_offset;

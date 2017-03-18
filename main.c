@@ -81,9 +81,10 @@ int main(void)
   unsigned int alpha = 20;
   unsigned int tx_timer = 0;
   int value;
-  static float alpha_idiq = 2.0;
-  static float moving_average_id = 0.0;
-  static float moving_average_iq = 0.0;
+  float alpha_idiq = 2.0;
+  float moving_average_id = 0.0;
+  float moving_average_iq = 0.0;
+  float correction_value = 0;
   while (1)
   {
     delay_ms (4);
@@ -129,6 +130,7 @@ int main(void)
     temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
     float id = qfp_fmul(temp, 2.0/3.0);
 
+    motor_rotor_position_radians = degrees_to_radiands((motor_rotor_position + 180) % 360); // invert the angle to get iq current inverted, to have the right signal
     temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians));
     temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
     temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
@@ -148,6 +150,13 @@ int main(void)
     iq = ema_filter_float(&iq, &moving_average_iq, &alpha_idiq);
 
     // ------------------------------------------------------------------------
+    // Calculate angle correction value to try keep id current = 0
+    correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
+    position_correction_value = (unsigned int) correction_value;
+    if (correction_value > 60.0) { correction_value = 60.0; }
+    if (correction_value < -60.0) { correction_value = -60.0; }
+
+
 
     static unsigned int loop_timer = 0;
     loop_timer++;

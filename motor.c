@@ -22,15 +22,12 @@ unsigned int interpolation_PWM_cycles_counter = 0;
 unsigned int motor_rotor_position = 0; // in degrees
 unsigned int motor_rotor_absolute_position = 0; // in degrees
 unsigned int interpolation_counter = 0;
+unsigned int position_correction_value = 0; // in degrees
 
 unsigned int adc_phase_a_current_offset;
 unsigned int adc_phase_c_current_offset;
 
 static unsigned int _direction = RIGHT;
-
-static unsigned int svm_table_index_a;
-static unsigned int svm_table_index_b;
-static unsigned int svm_table_index_c;
 
 struct Bldc_phase_state bldc_phase_state;
 
@@ -425,14 +422,11 @@ void FOC_fast_loop (void)
     if (interpolation_counter <= 60) // limit max interpolation value/angle
     {
       interpolation_counter++;
-      if (motor_rotor_position > 0)
-      {
-	motor_rotor_position--;
-      }
-      else
-      {
-	motor_rotor_position = 359;
-      }
+
+      // motor_rotor_position--; but limit to valid values
+      int temp = (int) (motor_rotor_position - 1) % 360;
+      if (temp < 0) { temp = 360 + temp; } // subtract the negative value to 360
+      motor_rotor_position = (unsigned int) temp;
     }
     else
     {
@@ -468,7 +462,8 @@ void apply_duty_cycle (void)
     duty_cycle_value *= -1;
 
   // scale and apply _duty_cycle
-  value = svm_table[motor_rotor_position];
+  int temp = ((int) (motor_rotor_position + position_correction_value)) % 360;
+  value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
@@ -484,17 +479,8 @@ void apply_duty_cycle (void)
   set_pwm_phase_a (value);
 
   // add 120 degrees and limit
-  unsigned int temp = motor_rotor_position + 120;
-  unsigned int temp_motor_rotor_position;
-  if (temp > 359)
-  {
-    temp_motor_rotor_position = (temp - 359) - 1;
-  }
-  else
-  {
-    temp_motor_rotor_position = temp;
-  }
-  value = svm_table[temp_motor_rotor_position];
+  temp = ((int) (motor_rotor_position + 120 + position_correction_value)) % 360;
+  value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
@@ -510,16 +496,9 @@ void apply_duty_cycle (void)
   set_pwm_phase_b (value);
 
   // subtract 120 degrees and limit
-  int temp1 = motor_rotor_position - 120;
-  if (temp1 < 0)
-  {
-    temp_motor_rotor_position = (unsigned int) (360 + temp1); // temp is negative
-  }
-  else
-  {
-    temp_motor_rotor_position = (unsigned int) temp1;
-  }
-  value = svm_table[temp_motor_rotor_position];
+  temp = ((int) (motor_rotor_position - 120 + position_correction_value)) % 360;
+  if (temp < 0) { temp = 360 + temp; } // subtract the negative value to 360
+  value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
@@ -642,7 +621,7 @@ _direction = LEFT;
       break;
     }
 
-    motor_rotor_position = motor_rotor_absolute_position;
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
     interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
   }
