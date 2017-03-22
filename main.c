@@ -152,24 +152,20 @@ int main(void)
     // ------------------------------------------------------------------------
     // Calculate angle correction value to try keep id current = 0
     correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
-    position_correction_value = (unsigned int) correction_value;
+    if (duty_cycle == 0 || motor_speed_erps == 0) // avoid PI controller windup
+    {
+      correction_value = 0;
+    }
     if (correction_value > 60.0) { correction_value = 60.0; }
     if (correction_value < -60.0) { correction_value = -60.0; }
-
-
+    position_correction_value = (int) correction_value;
 
     static unsigned int loop_timer = 0;
     loop_timer++;
     if (loop_timer > 10)
     {
       loop_timer = 0;
-
-//    printf ("%d; %d; %d; %d\n", value, motor_speed_erps, (int) (id * 100), (int) (iq*100));
-      printf ("%d, %.2f; %.2f\n", motor_speed_erps, id, iq);
-//      printf ("%d; %d\n", adc_phase_a_current_filtered, adc_phase_c_current_filtered);
-//    // Start a new usart/bluetooth transmission at fixed intervals
-//    tx_timer = (tx_timer + 1) % TX_INTERVAL;
-//    if (tx_timer == 0) { usart1_send_data(); }
+      printf ("%d, %.2f; %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
     }
   }
 }
