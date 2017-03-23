@@ -41,6 +41,10 @@ extern int motor_rotor_position;
 extern int position_correction_value;
 extern int duty_cycle;
 
+extern int adc_phase_a_current;
+extern int adc_phase_b_current;
+extern int adc_phase_c_current;
+
 extern unsigned int adc_phase_a_current_offset;
 extern unsigned int adc_phase_c_current_offset;
 

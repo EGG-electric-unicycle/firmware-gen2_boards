@@ -81,7 +81,7 @@ int main(void)
   unsigned int alpha = 20;
   unsigned int tx_timer = 0;
   int value;
-  float alpha_idiq = 20.0;
+  float alpha_idiq = 5.0;
   float moving_average_id = 0.0;
   float moving_average_iq = 0.0;
   float correction_value = 0;
@@ -92,66 +92,41 @@ int main(void)
     duty_cycle_value = adc_get_potentiometer_value ();
     duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
     value = qfp_fdiv((float) duty_cycle_value, 4.096);
-//value = 100;
     motor_set_duty_cycle (value);
 
 
     /* ********************************************************************
      * FOC slow loop
      */
-    // measure raw currents A and C and filter
-    int adc_phase_a_current_filtered;
-    int adc_phase_b_current_filtered;
-    int adc_phase_c_current_filtered;
 
-    adc_phase_a_current_filtered = adc_get_phase_a_current_value ();
-    adc_phase_c_current_filtered = adc_get_phase_c_current_value ();
+    //---------------------------
+    // Clarke transform assuming balanced currents
+
+    // average currents
+    // measure raw currents A and C and filter
+    adc_phase_a_current = adc_get_phase_a_current_value ();
+    adc_phase_c_current = adc_get_phase_c_current_value ();
 
     // removing DC offset
-    adc_phase_a_current_filtered = adc_phase_a_current_filtered - adc_phase_a_current_offset;
-    adc_phase_c_current_filtered = adc_phase_c_current_filtered - adc_phase_c_current_offset;
+    adc_phase_a_current = adc_phase_a_current - adc_phase_a_current_offset;
+    adc_phase_c_current = adc_phase_c_current - adc_phase_c_current_offset;
 
     /* Calc phase B current assuming balanced currents
      * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
      */
-    adc_phase_b_current_filtered = -adc_phase_a_current_filtered - adc_phase_c_current_filtered;
+    adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
 
-    // calc ia, ib and Ic in Amps
-    float ia = qfp_fmul(adc_phase_a_current_filtered, ADC_CURRENT_GAIN_AMPS);
-    float ib = qfp_fmul(adc_phase_b_current_filtered, ADC_CURRENT_GAIN_AMPS);
-//    float ic = qfp_fmul(adc_phase_c_current_filtered, ADC_CURRENT_GAIN_AMPS);
-
-    float id, iq;
-    float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
-//    // ABC->dq Park transform
-    // ------------------------------------------------------------------------
-//    float temp;
-//    temp = qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians));
-//    temp += qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
-//    temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
-//    float id = qfp_fmul(temp, 2.0/3.0);
-//
-//    motor_rotor_position_radians = degrees_to_radiands((motor_rotor_position + 180) % 360); // invert the angle to get iq current inverted, to have the right signal
-//    temp = qfp_fmul(ib, qfp_fsin(motor_rotor_position_radians));
-//    temp += qfp_fmul(ia, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
-//    temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
-//    float iq = qfp_fmul(temp, 2.0/3.0);
-
-//    //---------------------------
-//    // Clarke transform assuming balanced currents
-//    float i_alpha = ia;
-////    float i_beta = qfp_fmul(qfp_fsub(ib, ic), ONE_BY_SQRT3);
-//    float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ia), qfp_fmul(TWO_BY_SQRT3, ib));
-//
-//    id = qfp_fadd(qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ib, qfp_fsin(motor_rotor_position_radians)));
-//    iq = qfp_fadd(qfp_fmul(-ia, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)));
+    // calc ia and ib in Amps
+    float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_AMPS);
+    float ib = qfp_fmul(adc_phase_b_current, ADC_CURRENT_GAIN_AMPS);
 
     float i_alpha = ib;
-//    float i_beta = qfp_fmul(qfp_fsub(ib, ic), ONE_BY_SQRT3);
     float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ib), qfp_fmul(TWO_BY_SQRT3, ia));
 
-    id = qfp_fadd(qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians)));
-    iq = qfp_fadd(qfp_fmul(-ib, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)));
+    float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
+    float id = qfp_fadd(qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians)));
+    float iq = qfp_fadd(qfp_fmul(-ib, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)));
+
 
     // Filter Id and Iq currents
     id = ema_filter_float(&id, &moving_average_id, &alpha_idiq);
@@ -170,7 +145,7 @@ int main(void)
 
     static unsigned int loop_timer = 0;
     loop_timer++;
-    if (loop_timer > 20)
+    if (loop_timer > 6)
     {
       loop_timer = 0;
       printf ("%d, %.2f; %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);

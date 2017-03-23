@@ -14,6 +14,7 @@
 #include "qfplib-m3.h"
 #include "math.h"
 #include "main.h"
+#include "filter.h"
 
 unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
 unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
@@ -23,6 +24,10 @@ int motor_rotor_position = 0; // in degrees
 unsigned int motor_rotor_absolute_position = 0; // in degrees
 unsigned int interpolation_counter = 0;
 int position_correction_value = 0; // in degrees
+
+int adc_phase_a_current;
+int adc_phase_b_current;
+int adc_phase_c_current;
 
 unsigned int adc_phase_a_current_offset;
 unsigned int adc_phase_c_current_offset;
@@ -462,7 +467,6 @@ void apply_duty_cycle (void)
 
   // scale and apply _duty_cycle
   int temp;
-//  temp = (motor_rotor_position + position_correction_value) % 360;
   temp = (motor_rotor_position + 120 + position_correction_value) % 360;
   if (temp < 0) { temp *= -1; }
   value = svm_table[(unsigned int) temp];
@@ -481,7 +485,6 @@ void apply_duty_cycle (void)
   set_pwm_phase_a (value);
 
   // add 120 degrees and limit
-//  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
   temp = (motor_rotor_position + position_correction_value) % 360;
   if (temp < 0) { temp *= -1; }
   value = svm_table[(unsigned int) temp];
