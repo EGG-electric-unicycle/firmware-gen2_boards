@@ -462,7 +462,8 @@ void apply_duty_cycle (void)
 
   // scale and apply _duty_cycle
   int temp;
-  temp = (motor_rotor_position + position_correction_value) % 360;
+//  temp = (motor_rotor_position + position_correction_value) % 360;
+  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
   if (temp < 0) { temp *= -1; }
   value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
@@ -480,7 +481,8 @@ void apply_duty_cycle (void)
   set_pwm_phase_a (value);
 
   // add 120 degrees and limit
-  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
+//  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
+  temp = (motor_rotor_position + position_correction_value) % 360;
   if (temp < 0) { temp *= -1; }
   value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
@@ -573,28 +575,51 @@ _direction = LEFT;
   {
     switch (hall_sensors)
     {
+//      case 8192:
+//      motor_rotor_absolute_position = 113; // 4
+//      break;
+//
+//      case 24576:
+//      motor_rotor_absolute_position = 53; // 5 -- transição para positivo hall sensor A
+//      break;
+//
+//      case 16384:
+//      motor_rotor_absolute_position = 353; // 6
+//      break;
+//
+//      case 20480:
+//      motor_rotor_absolute_position = 293; // 1
+//      break;
+//
+//      case 4096:
+//      motor_rotor_absolute_position = 233; // 2
+//      break;
+//
+//      case 12288:
+//      motor_rotor_absolute_position = 173; // 3
+
       case 8192:
-      motor_rotor_absolute_position = 113; // 4
+      motor_rotor_absolute_position = 158; // 4
       break;
 
       case 24576:
-      motor_rotor_absolute_position = 53; // 5 -- transição para positivo hall sensor A
+      motor_rotor_absolute_position = 98; // 5 -- transição para positivo hall sensor A
       break;
 
       case 16384:
-      motor_rotor_absolute_position = 353; // 6
+      motor_rotor_absolute_position = 398; // 6
       break;
 
       case 20480:
-      motor_rotor_absolute_position = 293; // 1
+      motor_rotor_absolute_position = 338; // 1
       break;
 
       case 4096:
-      motor_rotor_absolute_position = 233; // 2
+      motor_rotor_absolute_position = 278; // 2
       break;
 
       case 12288:
-      motor_rotor_absolute_position = 173; // 3
+      motor_rotor_absolute_position = 218; // 3
 
       motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
       PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;

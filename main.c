@@ -81,7 +81,7 @@ int main(void)
   unsigned int alpha = 20;
   unsigned int tx_timer = 0;
   int value;
-  float alpha_idiq = 2.0;
+  float alpha_idiq = 20.0;
   float moving_average_id = 0.0;
   float moving_average_iq = 0.0;
   float correction_value = 0;
@@ -119,22 +119,23 @@ int main(void)
     // calc ia, ib and Ic in Amps
     float ia = qfp_fmul(adc_phase_a_current_filtered, ADC_CURRENT_GAIN_AMPS);
     float ib = qfp_fmul(adc_phase_b_current_filtered, ADC_CURRENT_GAIN_AMPS);
-    float ic = qfp_fmul(adc_phase_c_current_filtered, ADC_CURRENT_GAIN_AMPS);
+//    float ic = qfp_fmul(adc_phase_c_current_filtered, ADC_CURRENT_GAIN_AMPS);
 
+    float id, iq;
+    float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
 //    // ABC->dq Park transform
     // ------------------------------------------------------------------------
-    float temp;
-    float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
-    temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians));
-    temp += qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
-    temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
-    float id = qfp_fmul(temp, 2.0/3.0);
-
-    motor_rotor_position_radians = degrees_to_radiands((motor_rotor_position + 180) % 360); // invert the angle to get iq current inverted, to have the right signal
-    temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians));
-    temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
-    temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
-    float iq = qfp_fmul(temp, 2.0/3.0);
+//    float temp;
+//    temp = qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians));
+//    temp += qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
+//    temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
+//    float id = qfp_fmul(temp, 2.0/3.0);
+//
+//    motor_rotor_position_radians = degrees_to_radiands((motor_rotor_position + 180) % 360); // invert the angle to get iq current inverted, to have the right signal
+//    temp = qfp_fmul(ib, qfp_fsin(motor_rotor_position_radians));
+//    temp += qfp_fmul(ia, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
+//    temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
+//    float iq = qfp_fmul(temp, 2.0/3.0);
 
 //    //---------------------------
 //    // Clarke transform assuming balanced currents
@@ -144,6 +145,13 @@ int main(void)
 //
 //    id = qfp_fadd(qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ib, qfp_fsin(motor_rotor_position_radians)));
 //    iq = qfp_fadd(qfp_fmul(-ia, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)));
+
+    float i_alpha = ib;
+//    float i_beta = qfp_fmul(qfp_fsub(ib, ic), ONE_BY_SQRT3);
+    float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ib), qfp_fmul(TWO_BY_SQRT3, ia));
+
+    id = qfp_fadd(qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians)));
+    iq = qfp_fadd(qfp_fmul(-ib, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)));
 
     // Filter Id and Iq currents
     id = ema_filter_float(&id, &moving_average_id, &alpha_idiq);
@@ -156,13 +164,13 @@ int main(void)
     {
       correction_value = 0;
     }
-    if (correction_value > 60.0) { correction_value = 60.0; }
-    if (correction_value < -60.0) { correction_value = -60.0; }
+    if (correction_value > 30.0) { correction_value = 30.0; }
+    if (correction_value < -30.0) { correction_value = -30.0; }
     position_correction_value = (int) correction_value;
 
     static unsigned int loop_timer = 0;
     loop_timer++;
-    if (loop_timer > 10)
+    if (loop_timer > 20)
     {
       loop_timer = 0;
       printf ("%d, %.2f; %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
