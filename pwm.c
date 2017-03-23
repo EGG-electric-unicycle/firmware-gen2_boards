@@ -29,12 +29,12 @@ void PWM_PERIOD_INTERRUPT (void)
   // execute the next code only 1 time on evey two PWM cycles (when upcounting) - at the middle of PWM cycle, 100us
   if (!TIM_DirMode(TIM3))
   {
-//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
     FOC_fast_loop ();
 
     ADC_SoftwareStartConvCmd(ADC1, ENABLE); // Start ADCs conversions - here at the middle of PWM cycle
 
-//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM3, TIM_IT_Update);

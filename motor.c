@@ -22,7 +22,7 @@ unsigned int interpolation_PWM_cycles_counter = 0;
 int motor_rotor_position = 0; // in degrees
 unsigned int motor_rotor_absolute_position = 0; // in degrees
 unsigned int interpolation_counter = 0;
-int position_correction_value = 0; // in degrees
+float position_correction_value = 0.0; // in degrees
 
 unsigned int adc_phase_a_current_offset;
 unsigned int adc_phase_c_current_offset;
@@ -453,69 +453,43 @@ void motor_calc_current_dc_offset (void)
 
 void apply_duty_cycle (void)
 {
-  int duty_cycle_value = duty_cycle;
-  int value = 0;
-
-  // invert in the case of negative value
-  if (duty_cycle_value < 0)
-    duty_cycle_value *= -1;
+  float duty_cycle_value = (float) duty_cycle/1000;
 
   // scale and apply _duty_cycle
-  int temp;
-//  temp = (motor_rotor_position + position_correction_value) % 360;
-  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; }
-  value = svm_table[(unsigned int) temp];
-  if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
-  {
-    value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value;
-  }
-  else
-  {
-    value = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value) * duty_cycle_value;
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
-  }
-  set_pwm_phase_a (value);
+  float temp;
+  temp = qfp_fadd((float) motor_rotor_position, 120.0);
+  temp = qfp_fadd(temp, position_correction_value);
+  temp = fmodf(temp, 360.0);
+  if (temp < 0.0) {
+      temp *= -1.0; }
+  temp = qfp_fsin(degrees_to_radiands(temp));
+  temp = qfp_fmul(temp, 1799.5); // 3599/2
+  temp = qfp_fadd(temp, 1800.0);
+  temp = qfp_fmul(temp, duty_cycle_value);
+  set_pwm_phase_a ((unsigned int) temp);
 
   // add 120 degrees and limit
-//  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
-  temp = (motor_rotor_position + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; }
-  value = svm_table[(unsigned int) temp];
-  if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
-  {
-    value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value;
-  }
-  else
-  {
-    value = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value) * duty_cycle_value;
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
-  }
-  set_pwm_phase_b (value);
+  temp = qfp_fadd((float) motor_rotor_position, position_correction_value);
+  temp = fmodf(temp, 360.0);
+  if (temp < 0.0) {
+      temp *= -1.0; }
+  temp = qfp_fsin(degrees_to_radiands(temp));
+  temp = qfp_fmul(temp, 1799.5); // 3599/2
+  temp = qfp_fadd(temp, 1800.0);
+  temp = qfp_fmul(temp, duty_cycle_value);
+  set_pwm_phase_b ((unsigned int) temp);
 
   // subtract 120 degrees and limit
-  temp = (motor_rotor_position + 240 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; }
-  value = svm_table[(unsigned int) temp];
-  if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
-  {
-    value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * duty_cycle_value;
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value;
-  }
-  else
-  {
-    value = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value) * duty_cycle_value;
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
-  }
-  set_pwm_phase_c (value);
+  temp = qfp_fadd((float) motor_rotor_position, 240.0);
+  temp = qfp_fadd(temp, position_correction_value);
+  temp = fmodf(temp, 360.0);
+  if (temp < 0.0) {
+      temp *= -1.0; }
+  temp = qfp_fsin(degrees_to_radiands(temp));
+  temp = qfp_fmul(temp, 1799.5); // 3599/2
+  temp = qfp_fadd(temp, 1800.0);
+  temp = qfp_fmul(temp, duty_cycle_value);
+  set_pwm_phase_c ((unsigned int) temp);
 }
 
 void commutate (void)
@@ -631,7 +605,7 @@ _direction = LEFT;
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    motor_rotor_position = (motor_rotor_absolute_position + (int) position_correction_value) % 360;
     interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
   }

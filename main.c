@@ -162,11 +162,11 @@ int main(void)
     correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
     if (duty_cycle == 0 || motor_speed_erps == 0) // avoid PI controller windup
     {
-      correction_value = 0;
+      correction_value = 0.0;
     }
     if (correction_value > 30.0) { correction_value = 30.0; }
     if (correction_value < -30.0) { correction_value = -30.0; }
-    position_correction_value = (int) correction_value;
+    position_correction_value = correction_value;
 
     static unsigned int loop_timer = 0;
     loop_timer++;
