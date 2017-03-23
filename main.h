@@ -57,7 +57,7 @@
 //#define MOTOR_GAMA	4490000 // 60 / L as noted on VESC mcconf_default.h // 1000 Não funciona; 10000 começa a funcionar
 //#define MOTOR_PWM_DT	0.0001
 
-#define PWM_CYCLES_COUNTER_MAX	(46000 - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
+#define PWM_CYCLES_COUNTER_MAX	((46000*2) - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
 #define K_POSITION_CORRECTION_VALUE 0.1
 
 #define MOTOR_R		0.5
