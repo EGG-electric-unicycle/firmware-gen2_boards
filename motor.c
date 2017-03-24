@@ -8,6 +8,7 @@
 
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
+#include "stdio.h"
 #include "gpio.h"
 #include "pwm.h"
 #include "motor.h"
@@ -406,6 +407,67 @@ unsigned int svm_table [SVM_TABLE_LEN] =
     900
 };
 
+// runs every 1ms
+void FOC_slow_loop (void)
+{
+  static unsigned int tx_timer = 0;
+  float alpha_idiq = 5.0;
+  static float moving_average_id = 0.0;
+  static float moving_average_iq = 0.0;
+  static float correction_value = 0;
+
+  //---------------------------
+  // Clarke transform assuming balanced currents
+
+  // measure raw currents A and C and filter
+  adc_phase_a_current = adc_get_phase_a_current_value ();
+  adc_phase_c_current = adc_get_phase_c_current_value ();
+
+  // removing DC offset
+  adc_phase_a_current = adc_phase_a_current - adc_phase_a_current_offset;
+  adc_phase_c_current = adc_phase_c_current - adc_phase_c_current_offset;
+
+  /* Calc phase B current assuming balanced currents
+   * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
+   */
+  adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
+
+  // calc ia and ib in Amps
+  float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_AMPS);
+  float ib = qfp_fmul(adc_phase_b_current, ADC_CURRENT_GAIN_AMPS);
+
+  float i_alpha = ib;
+  float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ib), qfp_fmul(TWO_BY_SQRT3, ia));
+
+  float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
+  float id = qfp_fadd(qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians)));
+  float iq = qfp_fadd(qfp_fmul(-ib, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)));
+
+  // Filter Id and Iq currents
+  id = ema_filter_float(&id, &moving_average_id, &alpha_idiq);
+  iq = ema_filter_float(&iq, &moving_average_iq, &alpha_idiq);
+
+  // ------------------------------------------------------------------------
+  // Calculate angle correction value to try keep id current = 0
+  correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
+  if (duty_cycle == 0 || motor_speed_erps == 0) // avoid PI controller windup
+  {
+    correction_value = 0;
+  }
+  if (correction_value > 30.0) { correction_value = 30.0; }
+  if (correction_value < -30.0) { correction_value = -30.0; }
+  position_correction_value = (int) correction_value;
+
+  static unsigned int loop_timer = 0;
+  loop_timer++;
+  if (loop_timer > 6)
+  {
+    loop_timer = 0;
+    printf ("%d, %.2f; %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
+  }
+}
+
+// runs every 50us (PWM frequency)
 void FOC_fast_loop (void)
 {
   // count number of fast loops / PWM cycles
