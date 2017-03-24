@@ -45,10 +45,10 @@ void initialize (void)
   }
 
 //  TIM2_init ();
-//  TIM4_init ();
   gpio_init ();
   adc_init ();
   pwm_init ();
+//  TIM4_init ();
   buzzer_init ();
   usart1_bluetooth_init ();
   hall_sensor_init ();
@@ -79,7 +79,7 @@ int main(void)
   commutate ();
 
   static unsigned int moving_average = 0;
-  static unsigned int alpha = 20;
+  unsigned int alpha = 20;
   float value;
   while (1)
   {
@@ -88,7 +88,9 @@ int main(void)
     duty_cycle_value = adc_get_potentiometer_value ();
     duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
     value = qfp_fdiv((float) duty_cycle_value, 4.096);
-    motor_set_duty_cycle (value);
+    motor_set_duty_cycle ((int) value);
+
+    FOC_slow_loop ();
   }
 }
 

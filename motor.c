@@ -450,9 +450,9 @@ void FOC_slow_loop (void)
   // ------------------------------------------------------------------------
   // Calculate angle correction value to try keep id current = 0
   correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
-  if (duty_cycle == 0 || motor_speed_erps == 0) // avoid PI controller windup
-  {
-    correction_value = 0;
+  if (duty_cycle < 5 || motor_speed_erps < 80) // avoid PI controller windup
+  { // motor_speed_erps < 80 seems a good value to avoid motor stalling at start up, very low speed
+    correction_value = 0.0;
   }
   if (correction_value > 30.0) { correction_value = 30.0; }
   if (correction_value < -30.0) { correction_value = -30.0; }
@@ -460,7 +460,7 @@ void FOC_slow_loop (void)
 
   static unsigned int loop_timer = 0;
   loop_timer++;
-  if (loop_timer > 6)
+  if (loop_timer > 10)
   {
     loop_timer = 0;
     printf ("%d, %.2f; %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
@@ -483,22 +483,26 @@ void FOC_fast_loop (void)
   }
 
   // calculate the interpolation angle
-  interpolation_PWM_cycles_counter++;
-  if (interpolation_PWM_cycles_counter > PWM_cycles_per_SVM_TABLE_step)
+  // interpolation seems a problem when motor starts, so avoid to do it at very low speed
+  if (duty_cycle >= 5 || motor_speed_erps >= 80)
   {
-    interpolation_PWM_cycles_counter = 0;
-    if (interpolation_counter <= 60) // limit max interpolation value/angle
+    interpolation_PWM_cycles_counter++;
+    if (interpolation_PWM_cycles_counter > PWM_cycles_per_SVM_TABLE_step)
     {
-      interpolation_counter++;
+      interpolation_PWM_cycles_counter = 0;
+      if (interpolation_counter <= 60) // limit max interpolation value/angle
+      {
+	interpolation_counter++;
 
-      // motor_rotor_position--; but limit to valid values
-      motor_rotor_position = (motor_rotor_position - 1) % 360;
-      if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
-    }
-    else
-    {
-      // keep this value static over the loops, when interpolation_position >= 60
-      interpolation_PWM_cycles_counter = PWM_cycles_per_SVM_TABLE_step;
+	// motor_rotor_position--; but limit to valid values
+	motor_rotor_position = (motor_rotor_position - 1) % 360;
+	if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
+      }
+      else
+      {
+	// keep this value static over the loops, when interpolation_position >= 60
+	interpolation_PWM_cycles_counter = PWM_cycles_per_SVM_TABLE_step;
+      }
     }
   }
 
@@ -589,7 +593,8 @@ void commutate (void)
   #define HALL_SENSORS_MASK (HALL_SENSOR_A__PIN | HALL_SENSOR_B__PIN | HALL_SENSOR_C__PIN)
 
   static unsigned int hall_sensors = 0;
-  unsigned int sector;
+  static unsigned int hall_sensors_old = 0;
+  static unsigned int flag_count_speed = 0;
 
   hall_sensors = (GPIO_ReadInputData (HALL_SENSORS__PORT) & (HALL_SENSORS_MASK)); // mask other pins
 
@@ -600,109 +605,119 @@ void commutate (void)
 
 _direction = LEFT;
 
-  if (_direction == RIGHT)
+  if (hall_sensors != hall_sensors_old)
   {
-    switch (hall_sensors)
+    hall_sensors_old = hall_sensors;
+
+    if (_direction == RIGHT)
     {
-//      case 8192:
-//      motor_rotor_absolute_position = 340; // 4
-//      break;
-//
-//      case 24576:
-//      motor_rotor_absolute_position = 40; // 5 -- transição para positivo hall sensor A
-//      break;
-//
-//      case 16384:
-//      motor_rotor_absolute_position = 100; // 6
-//      break;
-//
-//      case 20480:
-//      motor_rotor_absolute_position = 160; // 1
-//      break;
-//
-//      case 4096:
-//      motor_rotor_absolute_position = 220; // 2
-//      break;
-//
-//      case 12288:
-//      motor_rotor_absolute_position = 280; // 3
-//
-//      motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-//      PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
-//      PWM_cycles_counter = 0;
-      break;
+      switch (hall_sensors)
+      {
+  //      case 8192:
+  //      motor_rotor_absolute_position = 340; // 4
+  //      break;
+  //
+  //      case 24576:
+  //      motor_rotor_absolute_position = 40; // 5 -- transição para positivo hall sensor A
+  //      break;
+  //
+  //      case 16384:
+  //      motor_rotor_absolute_position = 100; // 6
+  //      break;
+  //
+  //      case 20480:
+  //      motor_rotor_absolute_position = 160; // 1
+  //      break;
+  //
+  //      case 4096:
+  //      motor_rotor_absolute_position = 220; // 2
+  //      break;
+  //
+  //      case 12288:
+  //      motor_rotor_absolute_position = 280; // 3
+  //
+  //      motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
+  //      PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+  //      PWM_cycles_counter = 0;
+	break;
 
-      default:
-      return;
-      break;
+	default:
+	return;
+	break;
+      }
     }
-  }
-  else if (_direction == LEFT)
-  {
-    switch (hall_sensors)
+    else if (_direction == LEFT)
     {
-//      case 8192:
-//      motor_rotor_absolute_position = 113; // 4
-//      break;
-//
-//      case 24576:
-//      motor_rotor_absolute_position = 53; // 5 -- transição para positivo hall sensor A
-//      break;
-//
-//      case 16384:
-//      motor_rotor_absolute_position = 353; // 6
-//      break;
-//
-//      case 20480:
-//      motor_rotor_absolute_position = 293; // 1
-//      break;
-//
-//      case 4096:
-//      motor_rotor_absolute_position = 233; // 2
-//      break;
-//
-//      case 12288:
-//      motor_rotor_absolute_position = 173; // 3
+      switch (hall_sensors)
+      {
+  //      case 8192:
+  //      motor_rotor_absolute_position = 113; // 4
+  //      break;
+  //
+  //      case 24576:
+  //      motor_rotor_absolute_position = 53; // 5 -- transição para positivo hall sensor A
+  //      break;
+  //
+  //      case 16384:
+  //      motor_rotor_absolute_position = 353; // 6
+  //      break;
+  //
+  //      case 20480:
+  //      motor_rotor_absolute_position = 293; // 1
+  //      break;
+  //
+  //      case 4096:
+  //      motor_rotor_absolute_position = 233; // 2
+  //      break;
+  //
+  //      case 12288:
+  //      motor_rotor_absolute_position = 173; // 3
 
-      case 8192:
-      motor_rotor_absolute_position = 158; // 4
-      break;
+	case 8192:
+	motor_rotor_absolute_position = 158; // 4
+	break;
 
-      case 24576:
-      motor_rotor_absolute_position = 98; // 5 -- transição para positivo hall sensor A
-      break;
+	case 24576:
+	motor_rotor_absolute_position = 98; // 5 -- transição para positivo hall sensor A
+	break;
 
-      case 16384:
-      motor_rotor_absolute_position = 398; // 6
-      break;
+	case 16384:
+	motor_rotor_absolute_position = 398; // 6
+	flag_count_speed = 1;
+	break;
 
-      case 20480:
-      motor_rotor_absolute_position = 338; // 1
-      break;
+	case 20480:
+	motor_rotor_absolute_position = 338; // 1
+	break;
 
-      case 4096:
-      motor_rotor_absolute_position = 278; // 2
-      break;
+	case 4096:
+	motor_rotor_absolute_position = 278; // 2
+	break;
 
-      case 12288:
-      motor_rotor_absolute_position = 218; // 3
+	case 12288:
+	motor_rotor_absolute_position = 218; // 3
 
-      motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-      PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
-      PWM_cycles_counter = 0;
-      break;
+	if (flag_count_speed)
+	{
+	  flag_count_speed = 0;
+	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
+	  PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+	  PWM_cycles_counter = 0;
+	}
+	break;
 
-      default:
-      return;
-      break;
+	default:
+	return;
+	break;
+      }
+
+      motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+      interpolation_counter = 0;
+      interpolation_PWM_cycles_counter = 0;
     }
-
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
-    interpolation_counter = 0;
-    interpolation_PWM_cycles_counter = 0;
-  }
 
     apply_duty_cycle ();
+  }
 }
 
 void commutate_timer (void)

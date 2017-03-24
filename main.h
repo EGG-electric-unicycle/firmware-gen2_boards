@@ -17,8 +17,8 @@
 // Define for the NVIC IRQChannel Preemption Priority
 // lower number has higher priority
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
-#define	TIM3_PRIORITY				2
 #define HALL_SENSORS_PRIORITY			1
+#define	TIM3_PRIORITY				2
 #define	TIM4_PRIORITY				3
 #define	TIM2_PRIORITY				4
 #define	USART1_PRIORITY				5
