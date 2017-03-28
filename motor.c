@@ -35,9 +35,7 @@ unsigned int adc_phase_c_current_offset;
 
 static unsigned int _direction = RIGHT;
 
-struct Bldc_phase_state bldc_phase_state;
-
-int duty_cycle = 0;
+unsigned int duty_cycle = 0;
 
 // Space Vector Modulation PWMs values, please read this blog message:
 // http://www.berryjam.eu/2015/04/driving-bldc-gimbals-at-super-slow-speeds-with-arduino/
@@ -450,6 +448,7 @@ void FOC_slow_loop (void)
   // ------------------------------------------------------------------------
   // Calculate angle correction value to try keep id current = 0
   correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
+
   if (duty_cycle < 5 || motor_speed_erps < 80) // avoid PI controller windup
   { // motor_speed_erps < 80 seems a good value to avoid motor stalling at start up, very low speed
     correction_value = 0.0;
@@ -494,9 +493,16 @@ void FOC_fast_loop (void)
       {
 	interpolation_counter++;
 
-	// motor_rotor_position--; but limit to valid values
-	motor_rotor_position = (motor_rotor_position - 1) % 360;
-	if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
+	if (_direction == RIGHT)
+	{
+	  motor_rotor_position = (motor_rotor_position - 1) % 360;
+	  if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
+	}
+	else
+	{
+	  motor_rotor_position = (motor_rotor_position + 1) % 360;
+	  if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
+	}
       }
       else
       {
@@ -525,12 +531,8 @@ void motor_calc_current_dc_offset (void)
 
 void apply_duty_cycle (void)
 {
-  int duty_cycle_value = duty_cycle;
-  int value = 0;
-
-  // invert in the case of negative value
-  if (duty_cycle_value < 0)
-    duty_cycle_value *= -1;
+  unsigned int duty_cycle_value = duty_cycle;
+  unsigned int value = 0;
 
   // scale and apply _duty_cycle
   int temp;
@@ -588,167 +590,138 @@ void apply_duty_cycle (void)
   set_pwm_phase_c (value);
 }
 
-void commutate (void)
+void hall_sensors_interrupt (void)
 {
   #define HALL_SENSORS_MASK (HALL_SENSOR_A__PIN | HALL_SENSOR_B__PIN | HALL_SENSOR_C__PIN)
 
   static unsigned int hall_sensors = 0;
-  static unsigned int hall_sensors_old = 0;
   static unsigned int flag_count_speed = 0;
 
-  hall_sensors = (GPIO_ReadInputData (HALL_SENSORS__PORT) & (HALL_SENSORS_MASK)); // mask other pins
+  // read hall sensors signal pins and mask other pins
+  hall_sensors = (GPIO_ReadInputData (HALL_SENSORS__PORT) & (HALL_SENSORS_MASK));
 
-  if (duty_cycle > 0)
-    _direction = RIGHT;
-  else
-    _direction = LEFT;
-
-_direction = LEFT;
-
-  if (hall_sensors != hall_sensors_old)
+  if (_direction == LEFT)
   {
-    hall_sensors_old = hall_sensors;
-
-    if (_direction == RIGHT)
+    switch (hall_sensors)
     {
-      switch (hall_sensors)
+      // -15º
+      case 8192:
+      motor_rotor_absolute_position = 320; // 3
+      break;
+
+      case 24576: // transition to positive value of hall sensor A
+      motor_rotor_absolute_position = 260; // 4
+      break;
+
+      case 16384:
+      motor_rotor_absolute_position = 200; // 5
+      flag_count_speed = 1;
+      break;
+
+      case 20480:
+      motor_rotor_absolute_position = 140; // 6
+      break;
+
+      case 4096:
+      motor_rotor_absolute_position = 80; // 1
+      break;
+
+      case 12288:
+      motor_rotor_absolute_position = 20; // 2
+
+      // count speed only when motor did rotate half of 1 electronic rotation
+      if (flag_count_speed)
       {
-  //      case 8192:
-  //      motor_rotor_absolute_position = 340; // 4
-  //      break;
-  //
-  //      case 24576:
-  //      motor_rotor_absolute_position = 40; // 5 -- transição para positivo hall sensor A
-  //      break;
-  //
-  //      case 16384:
-  //      motor_rotor_absolute_position = 100; // 6
-  //      break;
-  //
-  //      case 20480:
-  //      motor_rotor_absolute_position = 160; // 1
-  //      break;
-  //
-  //      case 4096:
-  //      motor_rotor_absolute_position = 220; // 2
-  //      break;
-  //
-  //      case 12288:
-  //      motor_rotor_absolute_position = 280; // 3
-  //
-  //      motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-  //      PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
-  //      PWM_cycles_counter = 0;
-	break;
-
-	default:
-	return;
-	break;
+	flag_count_speed = 0;
+	motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
+	PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+	PWM_cycles_counter = 0;
       }
-    }
-    else if (_direction == LEFT)
-    {
-      switch (hall_sensors)
-      {
-  //      case 8192:
-  //      motor_rotor_absolute_position = 113; // 4
-  //      break;
-  //
-  //      case 24576:
-  //      motor_rotor_absolute_position = 53; // 5 -- transição para positivo hall sensor A
-  //      break;
-  //
-  //      case 16384:
-  //      motor_rotor_absolute_position = 353; // 6
-  //      break;
-  //
-  //      case 20480:
-  //      motor_rotor_absolute_position = 293; // 1
-  //      break;
-  //
-  //      case 4096:
-  //      motor_rotor_absolute_position = 233; // 2
-  //      break;
-  //
-  //      case 12288:
-  //      motor_rotor_absolute_position = 173; // 3
+      break;
 
-	case 8192:
-	motor_rotor_absolute_position = 158; // 4
-	break;
-
-	case 24576:
-	motor_rotor_absolute_position = 98; // 5 -- transição para positivo hall sensor A
-	break;
-
-	case 16384:
-	motor_rotor_absolute_position = 398; // 6
-	flag_count_speed = 1;
-	break;
-
-	case 20480:
-	motor_rotor_absolute_position = 338; // 1
-	break;
-
-	case 4096:
-	motor_rotor_absolute_position = 278; // 2
-	break;
-
-	case 12288:
-	motor_rotor_absolute_position = 218; // 3
-
-	if (flag_count_speed)
-	{
-	  flag_count_speed = 0;
-	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-	  PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
-	  PWM_cycles_counter = 0;
-	}
-	break;
-
-	default:
-	return;
-	break;
-      }
-
-      motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
-      interpolation_counter = 0;
-      interpolation_PWM_cycles_counter = 0;
+      default:
+      return;
+      break;
     }
 
-    apply_duty_cycle ();
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    interpolation_counter = 0;
+    interpolation_PWM_cycles_counter = 0;
   }
-}
+  else if (_direction == RIGHT)
+  {
+    switch (hall_sensors)
+    {
+      // +15º
+      case 8192:
+      motor_rotor_absolute_position = 176; // 6
+      break;
 
-void commutate_timer (void)
-{
-  svm_table_index_dec ();
+      case 24576: // transition to positive value of hall sensor A
+      motor_rotor_absolute_position = 116; // 1
+      break;
+
+      case 16384:
+      motor_rotor_absolute_position = 56; // 2
+      flag_count_speed = 1;
+      break;
+
+      case 20480:
+      motor_rotor_absolute_position = 356; // 3
+      break;
+
+      case 4096:
+      motor_rotor_absolute_position = 296; // 4
+      break;
+
+      case 12288:
+      motor_rotor_absolute_position = 236; // 5
+
+      if (flag_count_speed)
+      {
+	flag_count_speed = 0;
+	motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
+	PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+	PWM_cycles_counter = 0;
+      }
+      break;
+
+      default:
+      return;
+      break;
+    }
+
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    interpolation_counter = 0;
+    interpolation_PWM_cycles_counter = 0;
+  }
 
   apply_duty_cycle ();
 }
 
-void bldc_set_direction (unsigned int direction)
-{
-  _direction = direction;
-}
-
-unsigned int bldc_get_direction (void)
-{
-  return _direction;
-}
-
-void bldc_set_state (unsigned int state)
-{
-//  bldc_machine_state = state;
-}
-
-unsigned int bldc_get_state (void)
-{
-//  return bldc_machine_state;
-}
 
 // -999 < duty_cycle_value < 1000
 void motor_set_duty_cycle (int duty_cycle_value)
 {
-  duty_cycle = duty_cycle_value;
+  static unsigned int old_direction = 0;
+
+  if (duty_cycle_value > 0)
+  {
+    _direction = RIGHT; // no torque...
+  }
+  else
+  {
+    _direction = LEFT;
+    duty_cycle_value *= -1; // invert the value, to be positive
+  }
+
+  // if direction changes, we need to execute the code of commutation for the new update of the angle other way the motor will block
+  if (_direction != old_direction)
+  {
+    old_direction = _direction;
+    hall_sensors_interrupt ();
+  }
+
+  duty_cycle = (unsigned int) duty_cycle_value;
 }
+

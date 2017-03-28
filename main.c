@@ -66,9 +66,15 @@ int main(void)
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
-  // don't start until the potentiometer is on the left side
+  // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
-  while (adc_get_potentiometer_value() < (4095/15)) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+      duty_cycle_value > 1880) ;
+
+  int value = ((int) duty_cycle_value) - 2048;
+  value = value * 1000;
+  value = value / 2048;
+  motor_set_duty_cycle (value);
 
   motor_calc_current_dc_offset ();
 
@@ -76,19 +82,20 @@ int main(void)
   enable_phase_b ();
   enable_phase_c ();
 
-  commutate ();
+  hall_sensors_interrupt ();
 
-  static unsigned int moving_average = 0;
+  static unsigned int moving_average = 4095 / 2;
   unsigned int alpha = 20;
-  float value;
   while (1)
   {
     delay_ms (4);
 
     duty_cycle_value = adc_get_potentiometer_value ();
     duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
-    value = qfp_fdiv((float) duty_cycle_value, 4.096);
-    motor_set_duty_cycle ((int) value);
+    value = ((int) duty_cycle_value) - 2048;
+    value = value * 1000;
+    value = value / 2048;
+    motor_set_duty_cycle (value);
 
     FOC_slow_loop ();
   }

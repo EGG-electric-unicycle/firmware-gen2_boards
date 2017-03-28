@@ -74,7 +74,7 @@ void EXTI15_10_IRQHandler (void)
       EXTI_GetITStatus(EXTI_Line14) != RESET
       )
   {
-    commutate ();
+    hall_sensors_interrupt ();
 
     EXTI_ClearITPendingBit(EXTI_Line12);
     EXTI_ClearITPendingBit(EXTI_Line13);
