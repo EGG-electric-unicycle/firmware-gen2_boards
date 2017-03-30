@@ -84,18 +84,9 @@ int main(void)
 
   hall_sensors_interrupt ();
 
-  static unsigned int moving_average = 4095 / 2;
-  unsigned int alpha = 20;
   while (1)
   {
-    delay_ms (4);
-
-    duty_cycle_value = adc_get_potentiometer_value ();
-    duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
-    value = ((int) duty_cycle_value) - 2048;
-    value = value * 1000;
-    value = value / 2048;
-    motor_set_duty_cycle (value);
+    delay_ms (1);
 
     FOC_slow_loop ();
   }

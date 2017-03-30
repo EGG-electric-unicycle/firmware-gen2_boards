@@ -48,7 +48,7 @@
 // about 12.7mv for each 1A
 
 #define ADC_CURRENT_OFFSET		2131 // represents 1.71V when current = 0
-#define ADC_CURRENT_GAIN_AMPS		0.0190 // original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
+#define ADC_CURRENT_GAIN_MILLIAMPS	0.0190 * 1000// original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
 #define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
 
 // VESC Lizardmech
@@ -59,7 +59,8 @@
 //#define MOTOR_PWM_DT	0.0001
 
 #define PWM_CYCLES_COUNTER_MAX	((46000*2) - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
-#define K_POSITION_CORRECTION_VALUE 0.1
+#define K_POSITION_CORRECTION_VALUE (0.1 / 1000)
+#define K_IQ_CURRENT (5 / 1000.0)
 
 #define MOTOR_R		0.5
 #define MOTOR_L		0.001
@@ -67,7 +68,7 @@
 #define MOTOR_GAMA	100000 // 60 / L as noted on VESC mcconf_default.h
 #define MOTOR_PWM_DT	0.0001
 
-#define MOTOR_MAX_CURRENT	1 // Define max motor current (used on adc.c)
+#define MOTOR_MAX_CURRENT	1000 // Define max motor current in mA
 #define MOTOR_MAX_SPEED 	20000 // meter per hour
 //#define MOTOR_MIN_SPEED 	5000 // meter per hour -- walking speed is 5km/h
 #define MOTOR_MIN_SPEED 	0 // meter per hour -- walking speed is 5km/h
