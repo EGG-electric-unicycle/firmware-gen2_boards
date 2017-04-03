@@ -48,7 +48,7 @@
 // about 12.7mv for each 1A
 
 #define ADC_CURRENT_OFFSET		2131 // represents 1.71V when current = 0
-#define ADC_CURRENT_GAIN_AMPS		0.0190 // original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
+#define ADC_CURRENT_GAIN_AMPS		0.0634 // 0.0190 original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
 #define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
 
 // VESC Lizardmech

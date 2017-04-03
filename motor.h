@@ -37,8 +37,8 @@ extern int adc_phase_a_current;
 extern int adc_phase_b_current;
 extern int adc_phase_c_current;
 
-extern unsigned int adc_phase_a_current_offset;
-extern unsigned int adc_phase_c_current_offset;
+extern int adc_phase_a_current_offset;
+extern int adc_phase_c_current_offset;
 
 void commutation_disable (void);
 void hall_sensors_interrupt (void);

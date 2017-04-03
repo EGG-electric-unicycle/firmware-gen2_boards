@@ -9,6 +9,8 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 #include "stdio.h"
+#include "core_cm3.h"
+#include "adc.h"
 #include "gpio.h"
 #include "pwm.h"
 #include "motor.h"
@@ -16,6 +18,9 @@
 #include "math.h"
 #include "main.h"
 #include "filter.h"
+
+//static __INLINE void __enable_irq()               { __ASM volatile ("cpsie i"); }
+//static __INLINE void __disable_irq()              { __ASM volatile ("cpsid i"); }
 
 unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
 unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
@@ -26,12 +31,21 @@ unsigned int motor_rotor_absolute_position = 0; // in degrees
 unsigned int interpolation_counter = 0;
 int position_correction_value = 0; // in degrees
 
-int adc_phase_a_current;
-int adc_phase_b_current;
-int adc_phase_c_current;
+int adc_phase_a_current = 0;
+int adc_phase_b_current = 0;
+int adc_phase_c_current = 0;
 
-unsigned int adc_phase_a_current_offset;
-unsigned int adc_phase_c_current_offset;
+int adc_phase_a_current1 = 0;
+int adc_phase_b_current1 = 0;
+int adc_phase_c_current1 = 0;
+int adc_phase_current1_cycles = 0;
+
+int adc_phase_a_current_offset;
+int adc_phase_c_current_offset;
+
+unsigned int aaa = 0;
+unsigned int bbb = 0;
+unsigned int ccc = 0;
 
 static unsigned int _direction = RIGHT;
 
@@ -416,38 +430,80 @@ void FOC_slow_loop (void)
 
   //---------------------------
   // Clarke transform assuming balanced currents
-
-  // measure raw currents A and C and filter
-  adc_phase_a_current = adc_get_phase_a_current_value ();
-  adc_phase_c_current = adc_get_phase_c_current_value ();
-
   // removing DC offset
+
+  __disable_irq();
+  adc_phase_a_current = adc_phase_a_current1;
+  adc_phase_a_current1 = 0;
+  adc_phase_c_current = adc_phase_c_current1;
+  adc_phase_c_current1 = 0;
+  int temp_adc_phase_current1_cycles = adc_phase_current1_cycles;
+  adc_phase_current1_cycles = 0;
+  int temp_motor_rotor_position = motor_rotor_position;
+  unsigned int temp_direction = _direction;
+  __enable_irq();
+
+  adc_phase_a_current /= temp_adc_phase_current1_cycles;
+  adc_phase_c_current /= temp_adc_phase_current1_cycles;
+
   adc_phase_a_current = adc_phase_a_current - adc_phase_a_current_offset;
   adc_phase_c_current = adc_phase_c_current - adc_phase_c_current_offset;
+
 
   /* Calc phase B current assuming balanced currents
    * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
    */
-  adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
+//  adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
+  // change currents as for this motor, the phases are: BAC and not ABC
+  adc_phase_b_current = adc_phase_a_current;
+  adc_phase_a_current = -adc_phase_b_current - adc_phase_c_current;
 
   // calc ia and ib in Amps
   float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_AMPS);
   float ib = qfp_fmul(adc_phase_b_current, ADC_CURRENT_GAIN_AMPS);
 
-  float i_alpha = ib;
-  float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ib), qfp_fmul(TWO_BY_SQRT3, ia));
+  float id = 0;
+  float iq = 0;
 
-  float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
-  float id = qfp_fadd(qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians)));
-  float iq = qfp_fadd(qfp_fmul(-ib, qfp_fsin(motor_rotor_position_radians)), qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians)));
+  int temp_motor_rotor_position1 = temp_motor_rotor_position;
+  temp_motor_rotor_position = (temp_motor_rotor_position + 270) % 360; // this makes the motor to run (almost) smooth in both directions
+  float motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
+
+  // ABC->dq Park transform
+  //------------------------------------------------------------------------
+  float ic = qfp_fmul(adc_phase_c_current, ADC_CURRENT_GAIN_AMPS);
+  float temp;
+  temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians));
+  temp += qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
+  temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
+  id = qfp_fmul(temp, 2.0/3.0);
+
+  temp_motor_rotor_position = (temp_motor_rotor_position1 + 315) % 360; // needed for correct value calculation of iq
+  motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
+  temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians));
+  temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
+  temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
+  iq = qfp_fmul(temp, 2.0/3.0);
+  if (temp_direction == RIGHT) { // needed for correct sign value of iq
+    iq *= -1.0;
+  }
+
+  // Clarke transform assuming balanced currents
+  //------------------------------------------------------------------------
+//  float i_alpha = ib;
+//  float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ib), qfp_fmul(TWO_BY_SQRT3, ia));
+//  id = qfp_fadd(qfp_fmul(i_alpha, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(i_beta, qfp_fsin(motor_rotor_position_radians)));
+//  id *= -1.0;
+//  iq = qfp_fsub(qfp_fmul(i_beta, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(-i_alpha, qfp_fsin(motor_rotor_position_radians)));
 
   // Filter Id and Iq currents
+  //------------------------------------------------------------------------
   id = ema_filter_float(&id, &moving_average_id, &alpha_idiq);
   iq = ema_filter_float(&iq, &moving_average_iq, &alpha_idiq);
 
   // ------------------------------------------------------------------------
   // Calculate angle correction value to try keep id current = 0
-  correction_value = qfp_fadd(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
+  correction_value = qfp_fsub(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
 
   if (duty_cycle < 5 || motor_speed_erps < 80) // avoid PI controller windup
   { // motor_speed_erps < 80 seems a good value to avoid motor stalling at start up, very low speed
@@ -462,7 +518,7 @@ void FOC_slow_loop (void)
   if (loop_timer > 10)
   {
     loop_timer = 0;
-    printf ("%d, %.2f; %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
+    printf ("%d, %.2f, %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
   }
 }
 
@@ -513,6 +569,11 @@ void FOC_fast_loop (void)
   }
 
   apply_duty_cycle ();
+
+  // measure raw currents A and C and filter
+  adc_phase_a_current1 += (int) adc_get_phase_a_current_value ();
+  adc_phase_c_current1 += (int) adc_get_phase_c_current_value ();
+  adc_phase_current1_cycles++;
 }
 
 // calc the DC offset value for the current ADCs
