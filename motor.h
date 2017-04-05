@@ -40,9 +40,13 @@ extern int adc_phase_c_current;
 extern int adc_phase_a_current_offset;
 extern int adc_phase_c_current_offset;
 
+extern unsigned int duty_cycle;
+
 void commutation_disable (void);
 void hall_sensors_interrupt (void);
 void apply_duty_cycle (void);
+void motor_set_duty_cycle (int duty_cycle_value);
 void motor_calc_current_dc_offset (void);
+void motor_set_current (int value);
 
 #endif /* _MOTOR_H_ */

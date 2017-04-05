@@ -20,6 +20,7 @@
 #include "adc.h"
 #include "motor.h"
 #include "usart.h"
+#include "IMU/imu.h"
 
 static unsigned int _ms;
 
@@ -44,7 +45,7 @@ void initialize (void)
     while (1);
   }
 
-//  TIM2_init ();
+  TIM2_init ();
   gpio_init ();
   adc_init ();
   pwm_init ();
@@ -52,8 +53,7 @@ void initialize (void)
   buzzer_init ();
   usart1_bluetooth_init ();
   hall_sensor_init ();
-//  MPU6050_I2C_Init ();
-//  MPU6050_Initialize ();
+  IMU_init ();
 }
 
 int main(void)
@@ -89,13 +89,6 @@ int main(void)
   while (1)
   {
     delay_ms (4);
-
-    duty_cycle_value = adc_get_potentiometer_value ();
-    duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
-    value = ((int) duty_cycle_value) - 2048;
-    value = value * 1000;
-    value = value / 2048;
-    motor_set_duty_cycle (value);
 
     FOC_slow_loop ();
   }

@@ -66,7 +66,11 @@ extern "C" {
 
 #define MPU6050_I2C_Port             MPU6050_SCL__PORT
 #define MPU6050_I2C_RCC_Port         RCC_APB2Periph_GPIOB
-#define MPU6050_I2C_Speed            100000 // 100kHz standard mode
+
+// The max of 100kHz speed seems to block the communication with the IMU. A lower value of 10kHz seems to be ok
+//#define MPU6050_I2C_Speed            100000 // 100kHz standard mode
+#define MPU6050_I2C_Speed            10000
+
 
 /**
  *@}

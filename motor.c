@@ -18,9 +18,7 @@
 #include "math.h"
 #include "main.h"
 #include "filter.h"
-
-//static __INLINE void __enable_irq()               { __ASM volatile ("cpsie i"); }
-//static __INLINE void __disable_irq()              { __ASM volatile ("cpsid i"); }
+#include "IMU/imu.h"
 
 unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
 unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
@@ -48,8 +46,8 @@ unsigned int bbb = 0;
 unsigned int ccc = 0;
 
 static unsigned int _direction = RIGHT;
-
 unsigned int duty_cycle = 0;
+int motor_commanded_iq_current = 0; // in milliamps
 
 // Space Vector Modulation PWMs values, please read this blog message:
 // http://www.berryjam.eu/2015/04/driving-bldc-gimbals-at-super-slow-speeds-with-arduino/
@@ -422,11 +420,24 @@ unsigned int svm_table [SVM_TABLE_LEN] =
 // runs every 1ms
 void FOC_slow_loop (void)
 {
-  static unsigned int tx_timer = 0;
-  float alpha_idiq = 5.0;
-  static float moving_average_id = 0.0;
-  static float moving_average_iq = 0.0;
-  static float correction_value = 0;
+//  // Get potentiometer value and adapt to desired current value and motor direction
+//  unsigned int adc_potentiometer_value = adc_get_potentiometer_value ();
+//  static unsigned int moving_average = 4095 / 2;
+//  unsigned int alpha = 1;
+//  adc_potentiometer_value = ema_filter_uint32 (&adc_potentiometer_value, &moving_average, &alpha);
+//  int value = ((int) adc_potentiometer_value) - 2048;
+//  value = value * MOTOR_MAX_CURRENT;
+//  value = value / 2048;
+////  motor_set_current (value); // -MOTOR_MAX_CURRENT <-> MOTOR_MAX_CURRENT
+//  motor_set_duty_cycle (value);
+
+  static unsigned int loop_timer1 = 0;
+  loop_timer1++;
+  if (loop_timer1 > 10)
+  {
+    loop_timer1 = 0;
+    balance_controller ();
+  }
 
   //---------------------------
   // Clarke transform assuming balanced currents
@@ -459,26 +470,26 @@ void FOC_slow_loop (void)
   adc_phase_a_current = -adc_phase_b_current - adc_phase_c_current;
 
   // calc ia and ib in Amps
-  float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_AMPS);
-  float ib = qfp_fmul(adc_phase_b_current, ADC_CURRENT_GAIN_AMPS);
+  float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_MILLIAMPS);
+  float ib = qfp_fmul(adc_phase_b_current, ADC_CURRENT_GAIN_MILLIAMPS);
 
   float id = 0;
   float iq = 0;
 
   int temp_motor_rotor_position1 = temp_motor_rotor_position;
-  temp_motor_rotor_position = (temp_motor_rotor_position + 270) % 360; // this makes the motor to run (almost) smooth in both directions
+  temp_motor_rotor_position = (temp_motor_rotor_position + (270 - 1)) % 360; // this makes the motor to run (almost) smooth in both directions -- id current seems good after this
   float motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
 
   // ABC->dq Park transform
   //------------------------------------------------------------------------
-  float ic = qfp_fmul(adc_phase_c_current, ADC_CURRENT_GAIN_AMPS);
+  float ic = qfp_fmul(adc_phase_c_current, ADC_CURRENT_GAIN_MILLIAMPS);
   float temp;
   temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians));
   temp += qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
   temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
   id = qfp_fmul(temp, 2.0/3.0);
 
-  temp_motor_rotor_position = (temp_motor_rotor_position1 + 315) % 360; // needed for correct value calculation of iq
+  temp_motor_rotor_position = (temp_motor_rotor_position1 + (315 - 1)) % 360; // needed for correct value calculation of iq
   motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
   temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians));
   temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
@@ -498,11 +509,15 @@ void FOC_slow_loop (void)
 
   // Filter Id and Iq currents
   //------------------------------------------------------------------------
+  float alpha_idiq = 5.0;
+  static float moving_average_id = 0.0;
+  static float moving_average_iq = 0.0;
   id = ema_filter_float(&id, &moving_average_id, &alpha_idiq);
   iq = ema_filter_float(&iq, &moving_average_iq, &alpha_idiq);
 
   // ------------------------------------------------------------------------
-  // Calculate angle correction value to try keep id current = 0
+  // Calculate phase/angle correction value to try keep id current = 0
+  static float correction_value = 0;
   correction_value = qfp_fsub(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
 
   if (duty_cycle < 5 || motor_speed_erps < 80) // avoid PI controller windup
@@ -512,13 +527,51 @@ void FOC_slow_loop (void)
   if (correction_value > 30.0) { correction_value = 30.0; }
   if (correction_value < -30.0) { correction_value = -30.0; }
   position_correction_value = (int) correction_value;
+  // ------------------------------------------------------------------------
+
+  // ------------------------------------------------------------------------
+  // Calculate target iq current
+//  float iq_current_error = qfp_fsub(motor_commanded_iq_current, iq);
+  static float duty_cycle_f = 0;
+  float iq_current_error = qfp_fsub(motor_commanded_iq_current, duty_cycle_f);
+
+  float alpha_id_error = 10.0;
+  static float moving_average_id_error = 0.0;
+  iq_current_error = ema_filter_float(&iq_current_error, &moving_average_id_error, &alpha_id_error);
+
+//  static float duty_cycle_f = 0;
+  static float duty_cycle_old_f = 0;
+
+//  if (duty_cycle_f > duty_cycle_old_f)
+//  {
+//    duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(K_IQ_CURRENT, iq_current_error));
+//  }
+//  else
+//  {
+//    duty_cycle_f = qfp_fsub(duty_cycle_f, qfp_fmul(K_IQ_CURRENT, iq_current_error));
+//  }
+//  duty_cycle_old_f = duty_cycle_f;
+
+  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(K_IQ_CURRENT, iq_current_error));
+
+//  if ((motor_commanded_iq_current < 4) && (motor_commanded_iq_current > -4)) // avoid PI controller windup
+//  {
+//    duty_cycle_f = 0.0;
+//  }
+  if (duty_cycle_f >= 1000) { duty_cycle_f = 1000; }
+  else if (duty_cycle_f < -999) { duty_cycle_f = -999; }
+
+//  motor_set_duty_cycle((int) duty_cycle_f);
+  // ------------------------------------------------------------------------
+
 
   static unsigned int loop_timer = 0;
   loop_timer++;
   if (loop_timer > 10)
   {
     loop_timer = 0;
-    printf ("%d, %.2f, %.2f, %.2f\n", motor_speed_erps, id, iq, correction_value);
+
+    printf ("%d, %d, %.2f, %.2f\n", motor_speed_erps, duty_cycle, angle_log, angle_error_log);
   }
 }
 
@@ -551,13 +604,11 @@ void FOC_fast_loop (void)
 
 	if (_direction == RIGHT)
 	{
-	  motor_rotor_position = (motor_rotor_position - 1) % 360;
-	  if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
+	  motor_rotor_position = (motor_rotor_position + 359) % 360; // the same as motor_rotor_position--
 	}
 	else
 	{
 	  motor_rotor_position = (motor_rotor_position + 1) % 360;
-	  if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
 	}
       }
       else
@@ -580,8 +631,9 @@ void FOC_fast_loop (void)
 void motor_calc_current_dc_offset (void)
 {
   unsigned int i = 0;
-  while (i++ < 200)
+  while (i <= 200)
   {
+    i++;
     adc_phase_a_current_offset += adc_get_phase_a_current_value ();
     adc_phase_c_current_offset += adc_get_phase_c_current_value ();
     delay_ms (10);
@@ -598,7 +650,7 @@ void apply_duty_cycle (void)
   // scale and apply _duty_cycle
   int temp;
   temp = (motor_rotor_position + 120 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; }
+  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
   value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
@@ -616,7 +668,7 @@ void apply_duty_cycle (void)
 
   // add 120 degrees and limit
   temp = (motor_rotor_position + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; }
+  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
   value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
@@ -634,7 +686,7 @@ void apply_duty_cycle (void)
 
   // subtract 120 degrees and limit
   temp = (motor_rotor_position + 240 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; }
+  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
   value = svm_table[(unsigned int) temp];
   if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
@@ -706,6 +758,7 @@ void hall_sensors_interrupt (void)
     }
 
     motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
     interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
   }
@@ -753,13 +806,13 @@ void hall_sensors_interrupt (void)
     }
 
     motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative
     interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
   }
 
   apply_duty_cycle ();
 }
-
 
 // -999 < duty_cycle_value < 1000
 void motor_set_duty_cycle (int duty_cycle_value)
@@ -786,3 +839,8 @@ void motor_set_duty_cycle (int duty_cycle_value)
   duty_cycle = (unsigned int) duty_cycle_value;
 }
 
+// -MOTOR_MAX_CURRENT < duty_cycle_value < MOTOR_MAX_CURRENT
+void motor_set_current (int value)
+{
+  motor_commanded_iq_current = value;
+}
