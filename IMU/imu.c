@@ -121,7 +121,7 @@ float IMU_get_angle_error (void)
 //  angle = qfp_fadd(qfp_fmul(0.98, (qfp_fadd(angle, qfp_fmul(gyro_rate, dt)))), qfp_fmul(0.02, acc_y)); //use the complementary filter.
 
   // Now low pass filter the angle value
-  float angle_filter_alpha = 75.0;
+  float angle_filter_alpha = 98.0;
   static float moving_average_angle_filter = 0.0;
   ema_filter_float(&angle, &moving_average_angle_filter, &angle_filter_alpha);
   angle = moving_average_angle_filter;

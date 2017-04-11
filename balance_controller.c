@@ -26,8 +26,6 @@ void balance_controller(void)
 
   angle_error = IMU_get_angle_error ();
 
-//  angle_error = qfp_fmul(angle_error, -1.0);
-
   duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(K_BALANCE_CONTROLLER, angle_error));
 
   // limit value
