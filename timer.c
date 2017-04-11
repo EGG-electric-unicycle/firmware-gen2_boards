@@ -71,7 +71,7 @@ void TIM2_init(void)
 void TIM4_IRQHandler (void)
 {
 //GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-  FOC_slow_loop ();
+//  FOC_slow_loop ();
 
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM4, TIM_IT_Update);

@@ -45,6 +45,7 @@ void initialize (void)
     while (1);
   }
 
+  IMU_init ();
   TIM2_init ();
   gpio_init ();
   adc_init ();
@@ -53,7 +54,6 @@ void initialize (void)
   buzzer_init ();
   usart1_bluetooth_init ();
   hall_sensor_init ();
-  IMU_init ();
 }
 
 int main(void)
@@ -68,13 +68,9 @@ int main(void)
 
   // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
-      duty_cycle_value > 1880) ;
-
-  int value = ((int) duty_cycle_value) - 2048;
-  value = value * 1000;
-  value = value / 2048;
-  motor_set_duty_cycle (value);
+//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+//      duty_cycle_value > 1880) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
 
   motor_calc_current_dc_offset ();
 
@@ -82,13 +78,14 @@ int main(void)
   enable_phase_b ();
   enable_phase_c ();
 
+  set_pwm_duty_cycle (0);
   hall_sensors_interrupt ();
 
   static unsigned int moving_average = 4095 / 2;
   unsigned int alpha = 20;
   while (1)
   {
-    delay_ms (4);
+//    delay_ms (1);
 
     FOC_slow_loop ();
   }

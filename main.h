@@ -21,7 +21,7 @@
 #define	TIM3_PRIORITY				2
 #define	TIM4_PRIORITY				3
 #define	TIM2_PRIORITY				4
-#define	USART1_PRIORITY				5
+#define	USART1_PRIORITY				6
 
 // State machine
 #define COAST			0
@@ -68,14 +68,19 @@
 #define MOTOR_GAMA	100000 // 60 / L as noted on VESC mcconf_default.h
 #define MOTOR_PWM_DT	0.0001
 
-#define MOTOR_MIN_DUTYCYCLE_LEFT 50.0
-#define MOTOR_MIN_DUTYCYCLE_RIGHT 50.0
+#define MOTOR_MIN_DUTYCYCLE 70
 
 #define MOTOR_MAX_CURRENT	1000 // Define max motor current in mA
 #define MOTOR_MAX_SPEED 	20000 // meter per hour
 //#define MOTOR_MIN_SPEED 	5000 // meter per hour -- walking speed is 5km/h
 #define MOTOR_MIN_SPEED 	0 // meter per hour -- walking speed is 5km/h
 #define MOTOR_SPEED_CONVERSION 	0.5574 // convert hall sensor signal period (each 10us) to motor speed
+
+// 2 seconds to get up to max PWM duty cycle value of 1000
+//#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER (((1 * 1000000) / (PWM_PERIOD_US)) / 1000)
+#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER 5
+
+#define ANGLE_MAX_ERROR 3.0
 
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);

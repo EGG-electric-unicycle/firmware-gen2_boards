@@ -85,46 +85,33 @@ BOOL IMU_init(void)
   }
 }
 
-// called at each 10ms
-void balance_controller(void)
+float IMU_get_angle_error (void)
 {
   float acc_x;
   float acc_y;
   float acc_z;
   static float angle;
-  static float old_angle1;
-  static float old_angle2;
-  static float old_angle3;
   static float gyro_rate;
   float dt;
   unsigned int micros_new;
   static unsigned int micros_old = 0;
-  static unsigned int timer_1s = 0;
-
-  float current_error = 0;
-  static float old_error = 0;
-  float progressive_term = 0;
-  static float integrative_term = 0;
-  float derivative_term = 0;
-  float duty_cycle = 0;
-
-  float speed = 0;
+  float current_angle_error = 0;
 
   // read the accel and gyro sensor values
-  MPU6050_GetRawAccelGyro (accel_gyro); // takes abut 15ms to be executed!!!
+  MPU6050_GetRawAccelGyro (accel_gyro); // takes about 15ms to be executed!!!
 
   acc_x = accel_gyro[0];
   acc_y = accel_gyro[1];
-  acc_z = accel_gyro[2];
-  gyro_rate = accel_gyro[5] * GYRO_SENSITIVITY;
+//  acc_z = accel_gyro[2];
+//  gyro_rate = accel_gyro[5] * GYRO_SENSITIVITY;
 
   // calc dt, using micro seconds value
   micros_new = micros ();
   dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
   micros_old = micros_new;
 
-//  angle = qfp_fatan2(acc_x, acc_y); //calc angle between X and Y axis, in rads
-  angle = qfp_fatan2(acc_y, acc_z); //calc angle between X and Y axis, in rads
+  angle = qfp_fatan2(acc_x, acc_y); //calc angle between X and Y axis, in rads
+//  angle = qfp_fatan2(acc_y, acc_z); //calc angle between X and Y axis, in rads
   angle = qfp_fmul(qfp_fadd(angle, PI), RAD_TO_DEG); //convert from rads to degres
 //  angle = 0.98 * (angle + (gyro_rate * dt)) + 0.02 * (acc_y); //use the complementary filter.
 //  angle = 0.98 * (angle + qfp_fmul(gyro_rate, dt)) + 0.02 * (acc_y); //use the complementary filter.
@@ -133,57 +120,19 @@ void balance_controller(void)
 //  angle = qfp_fmul(0.98, (qfp_fadd(angle, qfp_fmul(gyro_rate, dt)))) + qfp_fmul(0.02, acc_y); //use the complementary filter.
 //  angle = qfp_fadd(qfp_fmul(0.98, (qfp_fadd(angle, qfp_fmul(gyro_rate, dt)))), qfp_fmul(0.02, acc_y)); //use the complementary filter.
 
-  angle = (0.25 * angle) + (0.25 * old_angle1) + (0.25 * old_angle2) + (0.25 * old_angle3);
-  old_angle1 = angle;
-  old_angle2 = old_angle1;
-  old_angle3 = old_angle2;
+  // Now low pass filter the angle value
+  float angle_filter_alpha = 75.0;
+  static float moving_average_angle_filter = 0.0;
+  ema_filter_float(&angle, &moving_average_angle_filter, &angle_filter_alpha);
+  angle = moving_average_angle_filter;
 
   // zero value error when the board is on balance
-  current_error = qfp_fsub(INITIAL_ANGLE, angle);
+  current_angle_error = qfp_fsub(270.0, angle);
   angle_log = angle;
-  angle_error_log = current_error;
+  angle_error_log = current_angle_error;
 
-#define ANGLE_MAX_ERROR 10.0
-  if (current_error >= ANGLE_MAX_ERROR) { current_error = ANGLE_MAX_ERROR; }
-  if (current_error <= -ANGLE_MAX_ERROR) { current_error = -ANGLE_MAX_ERROR; }
+  if (current_angle_error >= ANGLE_MAX_ERROR) { current_angle_error = ANGLE_MAX_ERROR; }
+  if (current_angle_error <= -ANGLE_MAX_ERROR) { current_angle_error = -ANGLE_MAX_ERROR; }
 
-
-  float current_error_alpha = 2.0;
-  static float moving_average_current_error = 0.0;
-  current_error = ema_filter_float(&current_error, &moving_average_current_error, &current_error_alpha);
-  current_error = moving_average_current_error;
-
-//  float k = ANGLE_MAX_ERROR / (1000.0 - MOTOR_MIN_DUTYCYCLE_LEFT);
-  float k = 100.0;
-
-  float output;
-  if (current_error > 0)
-  {
-    output = MOTOR_MIN_DUTYCYCLE_LEFT + (k * current_error);
-  }
-  else
-  {
-    output = -MOTOR_MIN_DUTYCYCLE_RIGHT + (k * current_error);
-  }
-
-  if (output >= 100) output = 1000;
-  if (output <= -999) output = -999;
-  motor_set_duty_cycle ((int) output);
-
-//  float kp = 10;
-//  float ki = 0.5;
-//  float kd = 5;
-//  float angle_old;
-//
-//  progressive_term = qfp_fmul(current_error, kp);
-//  integrative_term = qfp_fadd(integrative_term, qfp_fmul(current_error, ki));
-//  derivative_term = qfp_fmul(qfp_fsub(current_error, old_error), kd);
-//  old_error = current_error;
-//
-//  duty_cycle = qfp_fadd(qfp_fadd(progressive_term, integrative_term), derivative_term);
-//  if (duty_cycle >= 1000) { duty_cycle = 1000; }
-//  if (duty_cycle <= -999) { duty_cycle = -999; }
-////  motor_set_duty_cycle ((int) duty_cycle); // -999 <-> 1000
-//  motor_set_current ((int) duty_cycle); // -999 <-> 1000
-
+  return current_angle_error;
 }

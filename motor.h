@@ -31,7 +31,6 @@ extern unsigned int motor_speed_erps;
 extern unsigned int PWM_cycles_counter;
 extern int motor_rotor_position;
 extern int position_correction_value;
-extern unsigned int duty_cycle;
 
 extern int adc_phase_a_current;
 extern int adc_phase_b_current;
@@ -40,13 +39,7 @@ extern int adc_phase_c_current;
 extern int adc_phase_a_current_offset;
 extern int adc_phase_c_current_offset;
 
-extern unsigned int duty_cycle;
-
-void commutation_disable (void);
 void hall_sensors_interrupt (void);
-void apply_duty_cycle (void);
-void motor_set_duty_cycle (int duty_cycle_value);
 void motor_calc_current_dc_offset (void);
-void motor_set_current (int value);
 
 #endif /* _MOTOR_H_ */

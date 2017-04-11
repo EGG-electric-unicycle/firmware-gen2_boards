@@ -9,7 +9,7 @@
 #ifndef _PWM_H_
 #define _PWM_H_
 
-#define PWM_VALUE_DUTY_CYCLE_MAX		        (1800 - 1)
+#define PWM_VALUE_DUTY_CYCLE_MAX	(1800 - 1)
 #define MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX     (PWM_VALUE_DUTY_CYCLE_MAX / 2)
 
 #define PWM_PERIOD_INTERRUPT		TIM3_IRQHandler
@@ -22,7 +22,5 @@ void set_pwm_phase_b (unsigned int value);
 void set_pwm_phase_a (unsigned int value);
 
 void pwm_init (void);
-void pwm_set_duty_cycle (int value);
-void pwm_update_duty_cycle (void);
 
 #endif
