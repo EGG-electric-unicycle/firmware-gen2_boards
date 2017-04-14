@@ -47,7 +47,7 @@ void FOC_slow_loop (void)
   //---------------------------
   // Clarke transform assuming balanced currents
   // removing DC offset
-
+//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   __disable_irq();
   adc_phase_a_current = adc_phase_a_current1;
   adc_phase_a_current1 = 0;
@@ -127,14 +127,16 @@ void FOC_slow_loop (void)
   if (correction_value < -30.0) { correction_value = -30.0; }
   position_correction_value = (int) correction_value;
   // ------------------------------------------------------------------------
-
+//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 
   static unsigned int loop_timer1 = 0;
   loop_timer1++;
   if (loop_timer1 > 1)
   {
     loop_timer1 = 0;
+//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
     balance_controller ();
+//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
 
   static unsigned int loop_timer = 0;
@@ -145,14 +147,16 @@ void FOC_slow_loop (void)
 
     int motor_speed = (int) motor_speed_erps;
     if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
-
+//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
     printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
+//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
 }
 
 // runs every 50us (PWM frequency)
 void FOC_fast_loop (void)
 {
+//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   // count number of fast loops / PWM cycles
   if (PWM_cycles_counter < PWM_CYCLES_COUNTER_MAX)
   {
@@ -200,6 +204,7 @@ void FOC_fast_loop (void)
   adc_phase_a_current1 += (int) adc_get_phase_a_current_value ();
   adc_phase_c_current1 += (int) adc_get_phase_c_current_value ();
   adc_phase_current1_cycles++;
+//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 }
 
 // calc the DC offset value for the current ADCs
