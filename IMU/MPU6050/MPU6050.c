@@ -394,6 +394,14 @@ void MPU6050_I2C_BufferRead(u8 slaveAddr, u8* pBuffer, u8 readAddr, u16 NumByteT
   /* Test on EV6 and clear it */
   while (!I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
 
+// as we can read over internet, STM32F1xx errata says to avoid read only 1 byte, so read 2 and ignore the last one
+unsigned int hack_bug_STM32F1 = 0;
+if (NumByteToRead == 1)
+{
+  hack_bug_STM32F1 = 1;
+  NumByteToRead = 2;
+}
+
   /* While there is data to be read */
   while (NumByteToRead)
   {
@@ -409,11 +417,15 @@ void MPU6050_I2C_BufferRead(u8 slaveAddr, u8* pBuffer, u8 readAddr, u16 NumByteT
       /* Test on EV7 and clear it */
       if (I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_BYTE_RECEIVED))
       {
-	  /* Read a byte from the MPU6050 */
-	  *pBuffer = I2C_ReceiveData(MPU6050_I2C);
+	  // do not read last byte when hack_bug_STM32F1 == 1
+	  if (! ((NumByteToRead == 1) && (hack_bug_STM32F1 == 1)))
+	  {
+	      /* Read a byte from the MPU6050 */
+	      *pBuffer = I2C_ReceiveData(MPU6050_I2C);
 
-	  /* Point to the next location where the byte read will be saved */
-	  pBuffer++;
+	      /* Point to the next location where the byte read will be saved */
+	      pBuffer++;
+	  }
 
 	  /* Decrement the read bytes counter */
 	  NumByteToRead--;
