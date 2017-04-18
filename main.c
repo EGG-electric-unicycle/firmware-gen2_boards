@@ -45,9 +45,9 @@ void initialize (void)
     while (1);
   }
 
+  gpio_init ();
   IMU_init ();
   TIM2_init ();
-  gpio_init ();
   adc_init ();
   pwm_init ();
 //  TIM4_init ();
@@ -85,7 +85,7 @@ int main(void)
   unsigned int alpha = 20;
   while (1)
   {
-//    delay_ms (1);
+    delay_ms (1);
 
     FOC_slow_loop ();
   }

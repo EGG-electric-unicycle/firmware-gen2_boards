@@ -480,8 +480,8 @@ void pwm_duty_cycle_controller (void)
     counter = 0;
 
     // increment or decrement duty_cycle
-    if (duty_cycle_target > duty_cycle) { duty_cycle += 4;  }
-    else if (duty_cycle_target < duty_cycle) { duty_cycle -= 4; }
+    if (duty_cycle_target > duty_cycle) { duty_cycle++;  }
+    else if (duty_cycle_target < duty_cycle) { duty_cycle--; }
 
     // limit duty_cycle
     if (duty_cycle > 1000) { duty_cycle = 1000; }

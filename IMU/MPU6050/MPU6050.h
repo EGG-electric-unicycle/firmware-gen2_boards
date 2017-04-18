@@ -411,7 +411,7 @@ BOOL MPU6050_GetSleepModeStatus();
 // WHO_AM_I register
 uint8_t MPU6050_GetDeviceID();
 
-void MPU6050_GetRawAccelGyro(s16* AccelGyro);
+void MPU6050_GetRawAccelGyroTemp(s16* AccelGyro);
 
 void MPU6050_Write(uint8_t slaveAddr, uint8_t regAddr, uint8_t data);
 

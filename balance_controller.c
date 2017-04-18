@@ -34,19 +34,19 @@ void balance_controller(void)
 
   duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
 
-  // calc dt, using micro seconds value
-  micros_new = micros ();
-  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
-  micros_old = micros_new;
-
-  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
-  angle_error_old = angle_error;
-  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
+//  // calc dt, using micro seconds value
+//  micros_new = micros ();
+//  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
+//  micros_old = micros_new;
+//
+//  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
+//  angle_error_old = angle_error;
+//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
 
   // limit value
   if (duty_cycle_f > 1000) { duty_cycle_f = 1000; }
   if (duty_cycle_f < -999) { duty_cycle_f = -999; }
 
-duty_cycle_f = 150;
+//duty_cycle_f = 120;
   set_pwm_duty_cycle ((int) duty_cycle_f);
 }

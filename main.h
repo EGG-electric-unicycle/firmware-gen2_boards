@@ -19,8 +19,9 @@
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
 #define HALL_SENSORS_PRIORITY			1
 #define	TIM3_PRIORITY				2
-#define	TIM4_PRIORITY				3
-#define	TIM2_PRIORITY				4
+#define I2C_INTERRUPT_PRIORITY			3
+#define	TIM4_PRIORITY				4
+#define	TIM2_PRIORITY				5
 #define	USART1_PRIORITY				6
 
 // State machine
@@ -78,9 +79,9 @@
 
 // 2 seconds to get up to max PWM duty cycle value of 1000
 //#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER (((1 * 1000000) / (PWM_PERIOD_US)) / 1000)
-#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER 1
+#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER 4
 
-#define ANGLE_MAX_ERROR 30.0
+#define ANGLE_MAX_ERROR 10.0
 
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);

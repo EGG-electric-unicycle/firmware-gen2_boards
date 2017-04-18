@@ -30,53 +30,19 @@
 // X axis gives the front/rear inclination of the wheel
 // Z axis gives the lateral inclination of the wheel
 
-static s16 accel_gyro[6];
-static float accel_gyro_average[6];
+static s16 accel_gyro_temp[8];
 
 float angle_log = 0;
 float angle_error_log = 0;
 
 BOOL IMU_init(void)
 {
-  unsigned int i;
-  static s16 accel_gyro[6];
-  static float accel_gyro_average[6];
-
   MPU6050_I2C_Init();
+  MPU6050_Init_DMA ();
   MPU6050_Initialize();
 
-  // if the MPU6050 is ready, make "calibration"
-  // read the sensor values and average
   if (MPU6050_TestConnection())
   {
-    accel_gyro_average[0] = 0;
-    accel_gyro_average[1] = 0;
-    accel_gyro_average[2] = 0;
-    accel_gyro_average[3] = 0;
-    accel_gyro_average[4] = 0;
-    accel_gyro_average[5] = 0;
-
-    for (i = 0; i <= 10; i++)
-    {
-      MPU6050_GetRawAccelGyro (accel_gyro);
-
-      accel_gyro_average[0] += accel_gyro[0];
-      accel_gyro_average[1] += accel_gyro[1];
-      accel_gyro_average[2] += accel_gyro[2];
-      accel_gyro_average[3] += accel_gyro[3];
-      accel_gyro_average[4] += accel_gyro[4];
-      accel_gyro_average[5] += accel_gyro[5];
-
-      delay_ms(50); //wait for 50ms for the gyro to stable
-    }
-
-    accel_gyro_average[0] /= 10;
-    accel_gyro_average[1] /= 10;
-    accel_gyro_average[2] /= 10;
-    accel_gyro_average[3] /= 10;
-    accel_gyro_average[4] /= 10;
-    accel_gyro_average[5] /= 10;
-
     return TRUE;
   }
   else
@@ -99,12 +65,11 @@ float IMU_get_angle_error (void)
 
 GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   // read the accel and gyro sensor values
-  MPU6050_GetRawAccelGyro (accel_gyro); // takes about 15ms to be executed!!!
-GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+  MPU6050_GetRawAccelGyroTemp (accel_gyro_temp);
 
-  acc_x = accel_gyro[0];
-  acc_y = accel_gyro[1];
-//  acc_z = accel_gyro[2];
+  acc_x = accel_gyro_temp[0];
+  acc_y = accel_gyro_temp[1];
+  acc_z = accel_gyro_temp[2];
 //  gyro_rate = accel_gyro[5] * GYRO_SENSITIVITY;
 
   // calc dt, using micro seconds value

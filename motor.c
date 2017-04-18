@@ -148,7 +148,8 @@ void FOC_slow_loop (void)
     int motor_speed = (int) motor_speed_erps;
     if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
 //GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
+    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+//    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
 //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
 }

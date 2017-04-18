@@ -38,6 +38,8 @@
  * @{
  */
 
+u8 I2C_Rx_Buffer[14];
+
 void MPU6050_Initialize(void) 
 {
    //reset the whole module first
@@ -64,6 +66,105 @@ void MPU6050_Initialize(void)
 
    //reset gyro and accel sensor
    MPU6050_Write(MPU6050_DEFAULT_ADDRESS, MPU6050_RA_SIGNAL_PATH_RESET, 0x07);
+}
+
+void MPU6050_Init_DMA (void)
+{
+  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+
+  DMA_InitTypeDef  DMA_InitStructure;
+  DMA_DeInit(MPU6050_DMA_Channel);
+  DMA_InitStructure.DMA_PeripheralBaseAddr = (unsigned int) I2C_DR_Address;
+  DMA_InitStructure.DMA_MemoryBaseAddr = (unsigned int) I2C_Rx_Buffer;
+  DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+  DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+  DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
+  DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+  DMA_InitStructure.DMA_BufferSize = 14;
+  DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+  DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+  DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+  DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+  DMA_Init(MPU6050_DMA_Channel, &DMA_InitStructure);
+  DMA_Cmd(MPU6050_DMA_Channel, ENABLE);
+
+  NVIC_InitTypeDef NVIC_InitStructure;
+  NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = I2C_INTERRUPT_PRIORITY;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+
+  DMA_ITConfig(MPU6050_DMA_Channel, DMA_IT_TC, ENABLE);
+}
+
+void MPU6050_Start_DMA_Read(u8 slaveAddr, u8 readAddr, u16 NumByteToRead)
+{
+  /* Disable DMA channel*/
+  DMA_Cmd(MPU6050_DMA_Channel, DISABLE);
+  /* Set current data number again to 14 for MPu6050, only possible after disabling the DMA channel */
+  DMA_SetCurrDataCounter(MPU6050_DMA_Channel, NumByteToRead);
+
+  /* While the bus is busy */
+  while(I2C_GetFlagStatus(MPU6050_I2C, I2C_FLAG_BUSY));
+
+  /* Enable DMA NACK automatic generation */
+  I2C_DMALastTransferCmd(MPU6050_I2C, ENABLE); //Note this one, very important
+
+  /* Send START condition */
+  I2C_GenerateSTART(MPU6050_I2C, ENABLE);
+
+  /* Test on EV5 and clear it */
+  while(!I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_MODE_SELECT));
+
+  /* Send MPU6050 address for write */
+  I2C_Send7bitAddress(MPU6050_I2C, slaveAddr, I2C_Direction_Transmitter);
+
+  /* Test on EV6 and clear it */
+  while(!I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED));
+
+  /* Clear EV6 by setting again the PE bit */
+  I2C_Cmd(MPU6050_I2C, ENABLE);
+
+  /* Send the MPU6050's internal address to write to */
+  I2C_SendData(MPU6050_I2C, readAddr);
+
+  /* Test on EV8 and clear it */
+  while(!I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED));
+
+  /* Send START condition a second time */
+  I2C_GenerateSTART(MPU6050_I2C, ENABLE);
+
+  /* Test on EV5 and clear it */
+  while(!I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_MODE_SELECT));
+
+  /* Send MPU6050 address for read */
+  I2C_Send7bitAddress(MPU6050_I2C, slaveAddr, I2C_Direction_Receiver);
+
+  /* Test on EV6 and clear it */
+  while(!I2C_CheckEvent(MPU6050_I2C, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
+
+  /* Start DMA to receive data from I2C */
+  DMA_Cmd(MPU6050_DMA_Channel, ENABLE);
+  I2C_DMACmd(MPU6050_I2C, ENABLE);
+
+  // When the data transmission is complete, it will automatically jump to DMA interrupt routine to finish the rest.
+}
+
+// runs after the end of DMA
+void DMA1_Channel7_IRQHandler(void)
+{
+  if (DMA_GetFlagStatus(DMA1_FLAG_TC7))
+  {
+    DMA_ClearFlag(DMA1_FLAG_TC7); // Clear transmission complete flag
+    I2C_DMACmd(MPU6050_I2C, DISABLE);
+    I2C_GenerateSTOP(MPU6050_I2C, ENABLE); // Send I2C1 STOP Condition
+    DMA_Cmd(MPU6050_DMA_Channel, DISABLE); // Disable DMA channel
+
+    // I2C_Rx_Buffer data will be processed/readed on MPU6050_GetRawAccelGyro();
+  }
+
+  GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 }
 
 /** Verify the I2C connection.
@@ -159,23 +260,27 @@ BOOL MPU6050_GetSleepModeStatus()
 }
 
 
-/** Get raw 6-axis motion sensor readings (accel/gyro).
- * Retrieves all currently available motion sensor values.
- * @param AccelGyro 16-bit signed integer array of length 6
+/** Get raw 6-axis motion sensor readings (accel/gyro) + temperature
+ * Retrieves all currently available motion sensor values and temperature
+ * @param AccelGyroTemp 16-bit signed integer array of length 7
  * @see MPU6050_RA_ACCEL_XOUT_H
  */
-void MPU6050_GetRawAccelGyro(s16* AccelGyro)
+void MPU6050_GetRawAccelGyroTemp(s16* AccelGyroTemp)
 {
-    u8 tmpBuffer[14];
-    int i;
-    MPU6050_I2C_BufferRead(MPU6050_DEFAULT_ADDRESS, tmpBuffer, MPU6050_RA_ACCEL_XOUT_H, 14);
+  int i;
 
-    /* Get acceleration */
-    for (i = 0; i < 3; i++)
-        AccelGyro[i] = ((s16) ((u16) tmpBuffer[2 * i] << 8) + tmpBuffer[2 * i + 1]);
-    /* Get Angular rate */
-    for (i = 4; i < 7; i++)
-        AccelGyro[i - 1] = ((s16) ((u16) tmpBuffer[2 * i] << 8) + tmpBuffer[2 * i + 1]);
+  /* Get acceleration */
+  for (i = 0; i < 3; i++)
+      AccelGyroTemp[i] = ((s16) ((u16) I2C_Rx_Buffer[2 * i] << 8) + I2C_Rx_Buffer[2 * i + 1]);
+  /* Get temperature */
+  i = 3;
+  AccelGyroTemp[i] = ((s16) ((u16) I2C_Rx_Buffer[2 * i] << 8) + I2C_Rx_Buffer[2 * i + 1]);
+  /* Get Angular rate */
+  for (i = 4; i < 7; i++)
+      AccelGyroTemp[i - 1] = ((s16) ((u16) I2C_Rx_Buffer[2 * i] << 8) + I2C_Rx_Buffer[2 * i + 1]);
+
+  // start the DMA read and we will get the values next time MPU6050_GetRawAccelGyroTemp() is called
+  MPU6050_Start_DMA_Read (MPU6050_DEFAULT_ADDRESS, MPU6050_RA_ACCEL_XOUT_H, 14);
 }
 
 void MPU6050_Write(uint8_t slaveAddr, uint8_t regAddr, uint8_t data) 
@@ -296,6 +401,89 @@ void MPU6050_ReadBit(uint8_t slaveAddr, uint8_t regAddr, uint8_t bitNum, uint8_t
     *data = tmp & (1 << bitNum);
 }
 
+void I2C_ClearBusyFlagErratum(void)
+{
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  // 1. Disable the I2C peripheral by clearing the PE bit in I2Cx_CR1 register.
+  MPU6050_I2C->CR1 &= ~(0x0001);
+
+  // 2. Configure the SCL and SDA I/Os as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
+  GPIO_InitStructure.GPIO_Pin = MPU6050_I2C_SCL_Pin | MPU6050_I2C_SDA_Pin;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+  GPIO_Init(MPU6050_I2C_Port, &GPIO_InitStructure);
+  GPIO_SetBits(MPU6050_I2C_Port, MPU6050_I2C_SCL_Pin);
+  GPIO_SetBits(MPU6050_I2C_Port, MPU6050_I2C_SDA_Pin);
+
+  // 3. Check SCL and SDA High level in GPIOx_IDR.
+  while (!GPIO_ReadInputDataBit(MPU6050_I2C_Port, MPU6050_I2C_SCL_Pin))
+  {
+    asm("nop");
+  }
+
+  while (!GPIO_ReadInputDataBit(MPU6050_I2C_Port, MPU6050_I2C_SDA_Pin))
+  {
+    asm("nop");
+  }
+
+  // 4. Configure the SDA I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
+  GPIO_ResetBits(MPU6050_I2C_Port, MPU6050_I2C_SDA_Pin);
+
+  //  5. Check SDA Low level in GPIOx_IDR.
+  while (GPIO_ReadInputDataBit(MPU6050_I2C_Port, MPU6050_I2C_SDA_Pin))
+  {
+    asm("nop");
+  }
+
+  // 6. Configure the SCL I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
+  GPIO_ResetBits(MPU6050_I2C_Port, MPU6050_I2C_SCL_Pin);
+
+  //  7. Check SCL Low level in GPIOx_IDR.
+  while (GPIO_ReadInputDataBit(MPU6050_I2C_Port, MPU6050_I2C_SCL_Pin))
+  {
+    asm("nop");
+  }
+
+  // 8. Configure the SCL I/O as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
+  GPIO_SetBits(MPU6050_I2C_Port, MPU6050_I2C_SCL_Pin);
+
+  // 9. Check SCL High level in GPIOx_IDR.
+  while (!GPIO_ReadInputDataBit(MPU6050_I2C_Port, MPU6050_I2C_SCL_Pin))
+  {
+    asm("nop");
+  }
+
+  // 10. Configure the SDA I/O as General Purpose Output Open-Drain , High level (Write 1 to GPIOx_ODR).
+  GPIO_SetBits(MPU6050_I2C_Port, MPU6050_I2C_SDA_Pin);
+
+  // 11. Check SDA High level in GPIOx_IDR.
+  while (!GPIO_ReadInputDataBit(MPU6050_I2C_Port, MPU6050_I2C_SDA_Pin))
+  {
+    asm("nop");
+  }
+
+  // 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
+  /* Configure I2C pins: SCL and SDA */
+  GPIO_InitStructure.GPIO_Pin = MPU6050_I2C_SCL_Pin | MPU6050_I2C_SDA_Pin;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+  GPIO_Init(MPU6050_I2C_Port, &GPIO_InitStructure);
+
+  // 13. Set SWRST bit in I2Cx_CR1 register.
+  MPU6050_I2C->CR1 |= 0x8000;
+
+  asm("nop");
+
+  // 14. Clear SWRST bit in I2Cx_CR1 register.
+  MPU6050_I2C->CR1 &= ~0x8000;
+
+  asm("nop");
+
+  // 15. Enable the I2C peripheral by setting the PE bit in I2Cx_CR1 register
+  MPU6050_I2C->CR1 |= 0x0001;
+}
+
 /**
  * @brief  Initializes the I2C peripheral used to drive the MPU6050
  * @param  None
@@ -309,14 +497,10 @@ void MPU6050_I2C_Init()
   /* Enable GPIO clocks */
   RCC_APB2PeriphClockCmd(MPU6050_I2C_RCC_Port, ENABLE);
 
-  /* Configure I2C pins: SCL and SDA */
-  GPIO_InitStructure.GPIO_Pin = MPU6050_I2C_SCL_Pin | MPU6050_I2C_SDA_Pin;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
-  GPIO_Init(MPU6050_I2C_Port, &GPIO_InitStructure);
-
   /* Enable I2C clocks */
   RCC_APB1PeriphClockCmd(MPU6050_I2C_RCC_Periph, ENABLE);
+
+  I2C_ClearBusyFlagErratum();
 
   I2C_DeInit(MPU6050_I2C);
 
@@ -339,7 +523,7 @@ void MPU6050_I2C_Init()
   /* I2C Peripheral Enable */
   I2C_Cmd(MPU6050_I2C, ENABLE);
 
-  I2C_StretchClockCmd(MPU6050_I2C, ENABLE);
+  I2C_StretchClockCmd(MPU6050_I2C, DISABLE);
 }
 
 /**

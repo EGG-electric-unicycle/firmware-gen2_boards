@@ -9,7 +9,7 @@
 #ifndef _BALANCE_CONTROLLER_H_
 #define _BALANCE_CONTROLLER_H_
 
-#define KI_BALANCE_CONTROLLER	6.0
+#define KI_BALANCE_CONTROLLER	0.5
 #define KD_BALANCE_CONTROLLER	50.0
 
 void balance_controller(void);
