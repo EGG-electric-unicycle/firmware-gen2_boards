@@ -389,6 +389,8 @@ unsigned int _direction;
 
 void apply_duty_cycle (int duty_cycle_value)
 {
+//position_correction_value = 0;
+
   int _duty_cycle = duty_cycle_value;
   unsigned int value = 0;
   static unsigned int old_direction = 0;

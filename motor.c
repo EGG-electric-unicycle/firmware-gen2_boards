@@ -105,6 +105,17 @@ void FOC_slow_loop (void)
   }
   //------------------------------------------------------------------------
 
+//  float i_alpha = ia;
+//  float i_beta = qfp_fadd(qfp_fmul(ONE_BY_SQRT3, ia), qfp_fmul(TWO_BY_SQRT3, ib));
+//
+//  float motor_rotor_position_radians = degrees_to_radiands(motor_rotor_position);
+//  float cos_teta = qfp_fcos(motor_rotor_position_radians);
+//  float sin_teta = qfp_fsin(motor_rotor_position_radians);
+//
+//  id = qfp_fadd(qfp_fmul(i_alpha, cos_teta), qfp_fmul(i_beta, sin_teta));
+//  iq = qfp_fsub(qfp_fmul(i_beta, cos_teta), qfp_fmul(i_alpha, sin_teta));
+
+
   // Filter Id and Iq currents
   //------------------------------------------------------------------------
   float alpha_idiq = 5.0;
@@ -125,7 +136,7 @@ void FOC_slow_loop (void)
   }
   if (correction_value > 30.0) { correction_value = 30.0; }
   if (correction_value < -30.0) { correction_value = -30.0; }
-  position_correction_value = (int) correction_value;
+//  position_correction_value = (int) correction_value;
   // ------------------------------------------------------------------------
 //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 
@@ -148,8 +159,8 @@ void FOC_slow_loop (void)
     int motor_speed = (int) motor_speed_erps;
     if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
 //GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
-//    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
+//    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+    printf ("%.2f, %.2f, %d, %d\n", id, iq, duty_cycle, motor_speed);
 //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
 }

@@ -72,13 +72,20 @@ GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   acc_z = accel_gyro_temp[2];
 //  gyro_rate = accel_gyro[5] * GYRO_SENSITIVITY;
 
-  // calc dt, using micro seconds value
-  micros_new = micros ();
-  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
-  micros_old = micros_new;
+//  // calc dt, using micro seconds value
+//  micros_new = micros ();
+//  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
+//  micros_old = micros_new;
 
+// 1 - vertical
+// 2 - horizontal
+#define ORIENTATION 2
+#if ORIENTATION == 1
   angle = qfp_fatan2(acc_x, acc_y); //calc angle between X and Y axis, in rads
-//  angle = qfp_fatan2(acc_y, acc_z); //calc angle between X and Y axis, in rads
+#elif ORIENTATION == 2
+  angle = qfp_fatan2(acc_y, acc_z); //calc angle between X and y axis, in rads
+#endif
+
   angle = qfp_fmul(qfp_fadd(angle, PI), RAD_TO_DEG); //convert from rads to degres
 //  angle = 0.98 * (angle + (gyro_rate * dt)) + 0.02 * (acc_y); //use the complementary filter.
 //  angle = 0.98 * (angle + qfp_fmul(gyro_rate, dt)) + 0.02 * (acc_y); //use the complementary filter.
@@ -87,14 +94,20 @@ GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 //  angle = qfp_fmul(0.98, (qfp_fadd(angle, qfp_fmul(gyro_rate, dt)))) + qfp_fmul(0.02, acc_y); //use the complementary filter.
 //  angle = qfp_fadd(qfp_fmul(0.98, (qfp_fadd(angle, qfp_fmul(gyro_rate, dt)))), qfp_fmul(0.02, acc_y)); //use the complementary filter.
 
-  // Now low pass filter the angle value
-  float angle_filter_alpha = 98.0;
-  static float moving_average_angle_filter = 0.0;
-  ema_filter_float(&angle, &moving_average_angle_filter, &angle_filter_alpha);
-  angle = moving_average_angle_filter;
+//  // Now low pass filter the angle value
+//  float angle_filter_alpha = 95.0;
+//  static float moving_average_angle_filter = 0.0;
+//  ema_filter_float(&angle, &moving_average_angle_filter, &angle_filter_alpha);
+//  angle = moving_average_angle_filter;
 
   // zero value error when the board is on balance
+#define ORIENTATION 2
+#if ORIENTATION == 1
   current_angle_error = qfp_fsub(270.0, angle);
+#elif ORIENTATION == 2
+  current_angle_error = qfp_fsub(180.0, angle);
+#endif
+
   angle_log = angle;
   angle_error_log = current_angle_error;
 

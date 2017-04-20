@@ -34,19 +34,36 @@ void balance_controller(void)
 
   duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
 
-//  // calc dt, using micro seconds value
-//  micros_new = micros ();
-//  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
-//  micros_old = micros_new;
-//
-//  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
-//  angle_error_old = angle_error;
-//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
+  // calc dt, using micro seconds value
+  micros_new = micros ();
+  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
+  micros_old = micros_new;
+
+  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
+  angle_error_old = angle_error;
+  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
 
   // limit value
   if (duty_cycle_f > 1000) { duty_cycle_f = 1000; }
   if (duty_cycle_f < -999) { duty_cycle_f = -999; }
 
-//duty_cycle_f = 120;
+// 0 --> pwm fixed value
+// 1 --> potentiometer
+// 2 --> balance controller
+#define PWM_VALUE_SOURCE 1
+#if PWM_VALUE_SOURCE == 0
+  duty_cycle_f = 120.0;
+  set_pwm_duty_cycle (value);
+#elif PWM_VALUE_SOURCE == 1
+  static unsigned int moving_average = 4095 / 2;
+  unsigned int alpha = 20;
+  unsigned int duty_cycle_value = adc_get_potentiometer_value ();
+  duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
+  int value = ((int) duty_cycle_value) - 2048;
+  value = value * 1000;
+  value = value / 2048;
+  set_pwm_duty_cycle (value);
+#elif PWM_VALUE_SOURCE == 2
   set_pwm_duty_cycle ((int) duty_cycle_f);
+#endif
 }

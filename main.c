@@ -68,9 +68,9 @@ int main(void)
 
   // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
-//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
-//      duty_cycle_value > 1880) ;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+      duty_cycle_value > 1880) ;
+//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
 
   motor_calc_current_dc_offset ();
 
