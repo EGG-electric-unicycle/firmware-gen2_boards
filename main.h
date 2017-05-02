@@ -81,7 +81,7 @@
 //#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER (((1 * 1000000) / (PWM_PERIOD_US)) / 1000)
 #define PWM_DUTY_CYCLE_CONTROLLER_COUNTER 4
 
-#define ANGLE_MAX_ERROR 10.0
+#define ANGLE_MAX_ERROR 30.0
 
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);

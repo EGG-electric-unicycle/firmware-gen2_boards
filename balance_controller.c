@@ -32,7 +32,8 @@ void balance_controller(void)
 
   angle_error = IMU_get_angle_error ();
 
-  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
+  duty_cycle_f = qfp_fmul(angle_error, 33.3); // MAX angle 30; 30*33.3 = 1000
+//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
 
 //  // calc dt, using micro seconds value
 //  micros_new = micros ();
@@ -47,6 +48,27 @@ void balance_controller(void)
   if (duty_cycle_f > 1000) { duty_cycle_f = 1000; }
   if (duty_cycle_f < -999) { duty_cycle_f = -999; }
 
-//duty_cycle_f = 120;
+
+  // EUC_ORIENTATION
+#define PWM_INPUT_BALANCE_CONTROLLER 	0
+#define PWM_INPUT_POTENTIOMETER		1
+#define PWM_INPUT_FIXED_VALUE		2
+#define PWM_INPUT PWM_INPUT_POTENTIOMETER
+
+#if PWM_INPUT == PWM_INPUT_POTENTIOMETER
+  unsigned int duty_cycle_value;
+  int value;
+  static unsigned int moving_average = 4095 / 2;
+  unsigned int alpha = 20;
+  duty_cycle_value = adc_get_potentiometer_value ();
+  duty_cycle_value = ema_filter_uint32 (&duty_cycle_value, &moving_average, &alpha);
+  value = ((int) duty_cycle_value) - 2048;
+  value = value * 1000;
+  value = value / 2048;
+  duty_cycle_f = (float) value;
+#elif PWM_INPUT == PWM_INPUT_FIXED_VALUE
+  duty_cycle_f = 120.0;
+#endif
+
   set_pwm_duty_cycle ((int) duty_cycle_f);
 }

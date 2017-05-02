@@ -75,9 +75,9 @@ int main(void)
   motor_calc_current_dc_offset ();
 
   set_pwm_duty_cycle (0);
-  enable_phase_a ();
-  enable_phase_b ();
-  enable_phase_c ();
+//  enable_phase_a ();
+//  enable_phase_b ();
+//  enable_phase_c ();
 
   hall_sensors_interrupt ();
 

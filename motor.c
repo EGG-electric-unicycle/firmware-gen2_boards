@@ -125,7 +125,7 @@ void FOC_slow_loop (void)
   }
   if (correction_value > 30.0) { correction_value = 30.0; }
   if (correction_value < -30.0) { correction_value = -30.0; }
-  position_correction_value = (int) correction_value;
+//  position_correction_value = (int) correction_value;
   // ------------------------------------------------------------------------
 //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 

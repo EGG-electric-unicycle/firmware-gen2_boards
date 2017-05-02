@@ -63,7 +63,7 @@ float IMU_get_angle_error (void)
   static unsigned int micros_old = 0;
   float current_angle_error = 0;
 
-GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   // read the accel and gyro sensor values
   MPU6050_GetRawAccelGyroTemp (accel_gyro_temp);
 
@@ -77,8 +77,16 @@ GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
   micros_old = micros_new;
 
+// EUC_ORIENTATION
+#define EUC_ORIENTATION_VERTICAL 	1
+#define EUC_ORIENTATION_HORIZONTAL	0
+#define EUC_ORIENTATION EUC_ORIENTATION_VERTICAL
+
+#if EUC_ORIENTATION == EUC_ORIENTATION_VERTICAL
   angle = qfp_fatan2(acc_x, acc_y); //calc angle between X and Y axis, in rads
-//  angle = qfp_fatan2(acc_y, acc_z); //calc angle between X and Y axis, in rads
+#else
+  angle = qfp_fatan2(acc_y, acc_z); //calc angle between X and Y axis, in rads
+#endif
   angle = qfp_fmul(qfp_fadd(angle, PI), RAD_TO_DEG); //convert from rads to degres
 //  angle = 0.98 * (angle + (gyro_rate * dt)) + 0.02 * (acc_y); //use the complementary filter.
 //  angle = 0.98 * (angle + qfp_fmul(gyro_rate, dt)) + 0.02 * (acc_y); //use the complementary filter.
@@ -88,18 +96,22 @@ GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 //  angle = qfp_fadd(qfp_fmul(0.98, (qfp_fadd(angle, qfp_fmul(gyro_rate, dt)))), qfp_fmul(0.02, acc_y)); //use the complementary filter.
 
   // Now low pass filter the angle value
-  float angle_filter_alpha = 98.0;
+  float angle_filter_alpha = 20.0;
   static float moving_average_angle_filter = 0.0;
   ema_filter_float(&angle, &moving_average_angle_filter, &angle_filter_alpha);
   angle = moving_average_angle_filter;
 
   // zero value error when the board is on balance
+#if EUC_ORIENTATION == EUC_ORIENTATION_VERTICAL
   current_angle_error = qfp_fsub(270.0, angle);
+#else
+  current_angle_error = qfp_fsub(90.0, angle);
+#endif
   angle_log = angle;
   angle_error_log = current_angle_error;
 
-  if (current_angle_error >= ANGLE_MAX_ERROR) { current_angle_error = ANGLE_MAX_ERROR; }
-  if (current_angle_error <= -ANGLE_MAX_ERROR) { current_angle_error = -ANGLE_MAX_ERROR; }
+//  if (current_angle_error >= ANGLE_MAX_ERROR) { current_angle_error = ANGLE_MAX_ERROR; }
+//  if (current_angle_error <= -ANGLE_MAX_ERROR) { current_angle_error = -ANGLE_MAX_ERROR; }
 
   return current_angle_error;
 }
