@@ -119,13 +119,13 @@ void FOC_slow_loop (void)
   static float correction_value = 0;
   correction_value = qfp_fsub(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
 
-  if (duty_cycle < 5 || motor_speed_erps < 80) // avoid PI controller windup
+  if ((duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps < 80) // avoid PI controller windup
   { // motor_speed_erps < 80 seems a good value to avoid motor stalling at start up, very low speed
     correction_value = 0.0;
   }
   if (correction_value > 30.0) { correction_value = 30.0; }
   if (correction_value < -30.0) { correction_value = -30.0; }
-//  position_correction_value = (int) correction_value;
+  position_correction_value = (int) correction_value;
   // ------------------------------------------------------------------------
 //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 
@@ -146,9 +146,11 @@ void FOC_slow_loop (void)
     loop_timer = 0;
 
     int motor_speed = (int) motor_speed_erps;
-    if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
+//    if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
 //GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
-    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+//    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+//    printf ("%.2f, %d, %d\n", correction_value, duty_cycle, motor_speed);
+    printf ("%.2f, %.2f, %.2f, %d, %d\n", id, iq, correction_value, motor_speed, duty_cycle);
 //    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
 //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
   }
@@ -172,7 +174,7 @@ void FOC_fast_loop (void)
 
   // calculate the interpolation angle
   // interpolation seems a problem when motor starts, so avoid to do it at very low speed
-  if (duty_cycle >= 5 || motor_speed_erps >= 80)
+  if ( !(duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps >= 80)
   {
     interpolation_PWM_cycles_counter++;
     if (interpolation_PWM_cycles_counter > PWM_cycles_per_SVM_TABLE_step)
@@ -237,30 +239,30 @@ void hall_sensors_read_and_action (void)
   {
     switch (hall_sensors)
     {
-      // -15º
+      // measured 12º of advanced phase over hall sensor signal
       case 8192:
-      motor_rotor_absolute_position = 320; // 3
+      motor_rotor_absolute_position = 312; // 6
       break;
 
       case 24576: // transition to positive value of hall sensor A
-      motor_rotor_absolute_position = 260; // 4
+      motor_rotor_absolute_position = 252; // 5
       break;
 
       case 16384:
-      motor_rotor_absolute_position = 200; // 5
+      motor_rotor_absolute_position = 192; // 4
       flag_count_speed = 1;
       break;
 
       case 20480:
-      motor_rotor_absolute_position = 140; // 6
+      motor_rotor_absolute_position = 132; // 3
       break;
 
       case 4096:
-      motor_rotor_absolute_position = 80; // 1
+      motor_rotor_absolute_position = 72; // 2
       break;
 
       case 12288:
-      motor_rotor_absolute_position = 20; // 2
+      motor_rotor_absolute_position = 12; // 1
 
       // count speed only when motor did rotate half of 1 electronic rotation
       if (flag_count_speed)
@@ -286,30 +288,30 @@ void hall_sensors_read_and_action (void)
   {
     switch (hall_sensors)
     {
-      // +15º
+      // measured 12º of advanced phase over hall sensor signal
       case 8192:
-      motor_rotor_absolute_position = 176; // 6
+      motor_rotor_absolute_position = 153; // 3
       break;
 
       case 24576: // transition to positive value of hall sensor A
-      motor_rotor_absolute_position = 116; // 1
+      motor_rotor_absolute_position = 93; // 2
       break;
 
       case 16384:
-      motor_rotor_absolute_position = 56; // 2
+      motor_rotor_absolute_position = 33; // 1
       flag_count_speed = 1;
       break;
 
       case 20480:
-      motor_rotor_absolute_position = 356; // 3
+      motor_rotor_absolute_position = 333; // 6
       break;
 
       case 4096:
-      motor_rotor_absolute_position = 296; // 4
+      motor_rotor_absolute_position = 273; // 5
       break;
 
       case 12288:
-      motor_rotor_absolute_position = 236; // 5
+      motor_rotor_absolute_position = 213; // 4
 
       if (flag_count_speed)
       {

@@ -1,0 +1,168 @@
+diff --git a/Flash_Debug.launch b/Flash_Debug.launch
+index 3534e2d..7667b9a 100755
+--- a/Flash_Debug.launch
++++ b/Flash_Debug.launch
+@@ -8,7 +8,7 @@
+ <booleanAttribute key="org.eclipse.cdt.debug.mi.core.breakpointsFullPath" value="true"/>
+ <stringAttribute key="org.eclipse.cdt.debug.mi.core.commandFactory" value="org.eclipse.cdt.debug.mi.core.standardCommandFactory"/>
+ <stringAttribute key="org.eclipse.cdt.debug.mi.core.protocol" value="mi"/>
+-<booleanAttribute key="org.eclipse.cdt.debug.mi.core.verboseMode" value="true"/>
++<booleanAttribute key="org.eclipse.cdt.debug.mi.core.verboseMode" value="false"/>
+ <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_ID" value="com.zylin.embeddedcdt.EmbeddedCDebugger"/>
+ <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_REGISTER_GROUPS" value=""/>
+ <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="run"/>
+@@ -16,7 +16,7 @@
+ <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN_SYMBOL" value="main"/>
+ <booleanAttribute key="org.eclipse.cdt.launch.ENABLE_REGISTER_BOOKKEEPING" value="false"/>
+ <booleanAttribute key="org.eclipse.cdt.launch.ENABLE_VARIABLE_BOOKKEEPING" value="false"/>
+-<stringAttribute key="org.eclipse.cdt.launch.FORMAT" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&lt;contentList&gt;&lt;content id=&quot;temp1-apply_duty_cycle-(cast)&quot; val=&quot;int&quot;/&gt;&lt;content id=&quot;temp1-apply_duty_cycle-(format)&quot; val=&quot;0&quot;/&gt;&lt;/contentList&gt;"/>
++<stringAttribute key="org.eclipse.cdt.launch.FORMAT" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&lt;contentList&gt;&lt;content id=&quot;temp1-apply_duty_cycle-(format)&quot; val=&quot;0&quot;/&gt;&lt;content id=&quot;temp1-apply_duty_cycle-(cast)&quot; val=&quot;int&quot;/&gt;&lt;/contentList&gt;"/>
+ <stringAttribute key="org.eclipse.cdt.launch.GLOBAL_VARIABLES" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#10;&lt;globalVariableList&gt;&#10;&lt;globalVariable name=&quot;accel_gyro_temp&quot; path=&quot;&quot;/&gt;&#10;&lt;globalVariable name=&quot;I2C_Rx_Buffer&quot; path=&quot;&quot;/&gt;&#10;&lt;/globalVariableList&gt;&#10;"/>
+ <stringAttribute key="org.eclipse.cdt.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#10;&lt;memoryBlockExpressionList&gt;&#10;&lt;memoryBlockExpressionItem&gt;&#10;&lt;expression text=&quot;0x40000000&quot;/&gt;&#10;&lt;/memoryBlockExpressionItem&gt;&#10;&lt;memoryBlockExpressionItem&gt;&#10;&lt;expression text=&quot;0x40000424&quot;/&gt;&#10;&lt;/memoryBlockExpressionItem&gt;&#10;&lt;/memoryBlockExpressionList&gt;&#10;"/>
+ <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="main.elf"/>
+diff --git a/main.c b/main.c
+index 74bfa3a..a1cde04 100755
+--- a/main.c
++++ b/main.c
+@@ -68,16 +68,16 @@ int main(void)
+ 
+   // don't start until the potentiometer is on the middle value --> PWM ~= 0
+   unsigned int duty_cycle_value;
+-//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+-//      duty_cycle_value > 1880) ;
+-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
++  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
++      duty_cycle_value > 1880) ;
++//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
+ 
+   motor_calc_current_dc_offset ();
+ 
+   set_pwm_duty_cycle (0);
+-//  enable_phase_a ();
+-//  enable_phase_b ();
+-//  enable_phase_c ();
++  enable_phase_a ();
++  enable_phase_b ();
++  enable_phase_c ();
+ 
+   hall_sensors_interrupt ();
+ 
+diff --git a/motor.c b/motor.c
+index 341f5bd..70fc98a 100755
+--- a/motor.c
++++ b/motor.c
+@@ -119,13 +119,13 @@ void FOC_slow_loop (void)
+   static float correction_value = 0;
+   correction_value = qfp_fsub(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
+ 
+-  if (duty_cycle < 5 || motor_speed_erps < 80) // avoid PI controller windup
++  if ((duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps < 80) // avoid PI controller windup
+   { // motor_speed_erps < 80 seems a good value to avoid motor stalling at start up, very low speed
+     correction_value = 0.0;
+   }
+   if (correction_value > 30.0) { correction_value = 30.0; }
+   if (correction_value < -30.0) { correction_value = -30.0; }
+-//  position_correction_value = (int) correction_value;
++  position_correction_value = (int) correction_value;
+   // ------------------------------------------------------------------------
+ //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+ 
+@@ -146,9 +146,11 @@ void FOC_slow_loop (void)
+     loop_timer = 0;
+ 
+     int motor_speed = (int) motor_speed_erps;
+-    if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
++//    if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
+ //GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
+-    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
++//    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
++//    printf ("%.2f, %d, %d\n", correction_value, duty_cycle, motor_speed);
++    printf ("%.2f, %.2f, %.2f, %d, %d\n", id, iq, correction_value, motor_speed, duty_cycle);
+ //    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
+ //GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
+   }
+@@ -172,7 +174,7 @@ void FOC_fast_loop (void)
+ 
+   // calculate the interpolation angle
+   // interpolation seems a problem when motor starts, so avoid to do it at very low speed
+-  if (duty_cycle >= 5 || motor_speed_erps >= 80)
++  if ( !(duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps >= 80)
+   {
+     interpolation_PWM_cycles_counter++;
+     if (interpolation_PWM_cycles_counter > PWM_cycles_per_SVM_TABLE_step)
+@@ -237,30 +239,30 @@ void hall_sensors_read_and_action (void)
+   {
+     switch (hall_sensors)
+     {
+-      // -15º
++      // measured 12º of advanced phase over hall sensor signal
+       case 8192:
+-      motor_rotor_absolute_position = 320; // 3
++      motor_rotor_absolute_position = 312; // 6
+       break;
+ 
+       case 24576: // transition to positive value of hall sensor A
+-      motor_rotor_absolute_position = 260; // 4
++      motor_rotor_absolute_position = 252; // 5
+       break;
+ 
+       case 16384:
+-      motor_rotor_absolute_position = 200; // 5
++      motor_rotor_absolute_position = 192; // 4
+       flag_count_speed = 1;
+       break;
+ 
+       case 20480:
+-      motor_rotor_absolute_position = 140; // 6
++      motor_rotor_absolute_position = 132; // 3
+       break;
+ 
+       case 4096:
+-      motor_rotor_absolute_position = 80; // 1
++      motor_rotor_absolute_position = 72; // 2
+       break;
+ 
+       case 12288:
+-      motor_rotor_absolute_position = 20; // 2
++      motor_rotor_absolute_position = 12; // 1
+ 
+       // count speed only when motor did rotate half of 1 electronic rotation
+       if (flag_count_speed)
+@@ -286,30 +288,30 @@ void hall_sensors_read_and_action (void)
+   {
+     switch (hall_sensors)
+     {
+-      // +15º
++      // measured 12º of advanced phase over hall sensor signal
+       case 8192:
+-      motor_rotor_absolute_position = 176; // 6
++      motor_rotor_absolute_position = 153; // 3
+       break;
+ 
+       case 24576: // transition to positive value of hall sensor A
+-      motor_rotor_absolute_position = 116; // 1
++      motor_rotor_absolute_position = 93; // 2
+       break;
+ 
+       case 16384:
+-      motor_rotor_absolute_position = 56; // 2
++      motor_rotor_absolute_position = 33; // 1
+       flag_count_speed = 1;
+       break;
+ 
+       case 20480:
+-      motor_rotor_absolute_position = 356; // 3
++      motor_rotor_absolute_position = 333; // 6
+       break;
+ 
+       case 4096:
+-      motor_rotor_absolute_position = 296; // 4
++      motor_rotor_absolute_position = 273; // 5
+       break;
+ 
+       case 12288:
+-      motor_rotor_absolute_position = 236; // 5
++      motor_rotor_absolute_position = 213; // 4
+ 
+       if (flag_count_speed)
+       {

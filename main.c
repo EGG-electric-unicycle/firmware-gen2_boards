@@ -68,16 +68,16 @@ int main(void)
 
   // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
-//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
-//      duty_cycle_value > 1880) ;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+      duty_cycle_value > 1880) ;
+//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
 
   motor_calc_current_dc_offset ();
 
   set_pwm_duty_cycle (0);
-//  enable_phase_a ();
-//  enable_phase_b ();
-//  enable_phase_c ();
+  enable_phase_a ();
+  enable_phase_b ();
+  enable_phase_c ();
 
   hall_sensors_interrupt ();
 
