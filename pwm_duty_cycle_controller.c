@@ -384,8 +384,8 @@ unsigned int svm_table [SVM_TABLE_LEN] =
 };
 
 int duty_cycle_target;
-int duty_cycle;
-volatile unsigned int _direction;
+int duty_cycle = 0;
+unsigned int _direction;
 
 void apply_duty_cycle (int duty_cycle_value)
 {

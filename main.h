@@ -66,14 +66,16 @@
 #define MOTOR_TYPE_EUC1 			0
 #define MOTOR_TYPE_EUC2 			1
 #define MOTOR_TYPE_MICROWORKS_500W_30KMH 	2 // works well only rotating to left
-#define MOTOR_TYPE MOTOR_TYPE_MICROWORKS_500W_30KMH
+#define MOTOR_TYPE MOTOR_TYPE_EUC2
 
 // define the motor rotor delta phase advance over the hall sensors signal
 // value must be [0 --> 59]
 #if (MOTOR_TYPE == MOTOR_TYPE_EUC1) || (MOTOR_TYPE == MOTOR_TYPE_EUC2)
-  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE 34
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT 	30
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT 	15
 #elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
-  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE 34
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT 34
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT 34
 #endif
 
 
