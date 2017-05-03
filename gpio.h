@@ -1,7 +1,7 @@
 /*
  * EGG Electric Unicycle firmware
  *
- * Copyright (C) Casainho, 2015, 2106.
+ * Copyright (C) Casainho, 2015, 2106, 2017.
  *
  * Released under the GPL License, Version 3
  */
@@ -50,6 +50,8 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+#include "main.h"
+
 #define CURRENT_PHASE_A__PIN      GPIO_Pin_3
 #define CURRENT_PHASE_A__PORT     GPIOA
 #define CURRENT_PHASE_C__PIN      GPIO_Pin_2
@@ -58,13 +60,21 @@
 #define BATTERY_VOLTAGE__PIN      GPIO_Pin_4
 #define BATTERY_VOLTAGE__PORT     GPIOA
 
-#define HALL_SENSOR_A__PIN        GPIO_Pin_12
+#if (MOTOR_TYPE == MOTOR_TYPE_EUC1) || (MOTOR_TYPE == MOTOR_TYPE_EUC2)
+  #define HALL_SENSOR_A__PIN        GPIO_Pin_12
+  #define HALL_SENSOR_B__PIN        GPIO_Pin_13
+  #define HALL_SENSOR_C__PIN        GPIO_Pin_14
+#elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
+  #define HALL_SENSOR_A__PIN        GPIO_Pin_14
+  #define HALL_SENSOR_B__PIN        GPIO_Pin_13
+  #define HALL_SENSOR_C__PIN        GPIO_Pin_12
+#endif
+
 #define HALL_SENSOR_A__PORT       GPIOB
-#define HALL_SENSOR_B__PIN        GPIO_Pin_13
 #define HALL_SENSOR_B__PORT       GPIOB
-#define HALL_SENSOR_C__PIN        GPIO_Pin_14
 #define HALL_SENSOR_C__PORT       GPIOB
 #define HALL_SENSORS__PORT        GPIOB
+#define HALL_SENSORS_MASK 	  (HALL_SENSOR_A__PIN | HALL_SENSOR_B__PIN | HALL_SENSOR_C__PIN)
 
 #define MPU6050_SCL__PIN          GPIO_Pin_6
 #define MPU6050_SCL__PORT         GPIOB

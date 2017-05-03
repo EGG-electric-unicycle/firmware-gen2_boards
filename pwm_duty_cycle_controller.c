@@ -385,12 +385,14 @@ unsigned int svm_table [SVM_TABLE_LEN] =
 
 int duty_cycle_target;
 int duty_cycle;
-unsigned int _direction;
+volatile unsigned int _direction;
 
 void apply_duty_cycle (int duty_cycle_value)
 {
   int _duty_cycle = duty_cycle_value;
-  unsigned int value = 0;
+  unsigned int value_a = 0;
+  unsigned int value_b = 0;
+  unsigned int value_c = 0;
   static unsigned int old_direction = 0;
 
   if (_duty_cycle > 0)
@@ -411,63 +413,74 @@ void apply_duty_cycle (int duty_cycle_value)
   }
 
   // apply minimum duty_cycle value
-  int temp1 = 1000 - MOTOR_MIN_DUTYCYCLE;
-  _duty_cycle = ((_duty_cycle * temp1) + MOTOR_MIN_DUTYCYCLE) / 1000;
+//  int temp1 = 1000 - MOTOR_MIN_DUTYCYCLE;
+//  _duty_cycle = ((_duty_cycle * temp1) + MOTOR_MIN_DUTYCYCLE) / 1000;
 
   // scale and apply _duty_cycle
   int temp;
-  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
-  value = svm_table[(unsigned int) temp];
-  if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
-  {
-    value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value;
-  }
-  else
-  {
-    value = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value) * ((unsigned int) _duty_cycle);
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
-  }
-  set_pwm_phase_a (value);
-
-  // add 120 degrees and limit
   temp = (motor_rotor_position + position_correction_value) % 360;
   if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
-  value = svm_table[(unsigned int) temp];
-  if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
+  value_a = svm_table[(unsigned int) temp];
+  if (value_a > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
-    value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value;
+    value_a = (value_a - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
+    value_a = value_a / 1000;
+    value_a = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value_a;
   }
   else
   {
-    value = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value) * ((unsigned int) _duty_cycle);
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
+    value_a = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value_a) * ((unsigned int) _duty_cycle);
+    value_a = value_a / 1000;
+    value_a = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value_a;
   }
-  set_pwm_phase_b (value);
+
+  // add 120 degrees and limit
+  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
+  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
+  value_b = svm_table[(unsigned int) temp];
+  if (value_b > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
+  {
+    value_b = (value_b - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
+    value_b = value_b / 1000;
+    value_b = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value_b;
+  }
+  else
+  {
+    value_b = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value_b) * ((unsigned int) _duty_cycle);
+    value_b = value_b / 1000;
+    value_b = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value_b;
+  }
 
   // subtract 120 degrees and limit
   temp = (motor_rotor_position + 240 + position_correction_value) % 360;
   if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
-  value = svm_table[(unsigned int) temp];
-  if (value > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
+  value_c = svm_table[(unsigned int) temp];
+  if (value_c > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
-    value = (value - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value;
+    value_c = (value_c - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
+    value_c = value_c / 1000;
+    value_c = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX + value_c;
   }
   else
   {
-    value = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value) * ((unsigned int) _duty_cycle);
-    value = value / 1000;
-    value = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value;
+    value_c = (MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value_c) * ((unsigned int) _duty_cycle);
+    value_c = value_c / 1000;
+    value_c = MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX - value_c;
   }
-  set_pwm_phase_c (value);
+
+#if MOTOR_TYPE == MOTOR_TYPE_EUC1
+  set_pwm_phase_a (value_a);
+  set_pwm_phase_b (value_b);
+  set_pwm_phase_c (value_c);
+#elif MOTOR_TYPE == MOTOR_TYPE_EUC2
+  set_pwm_phase_a (value_b);
+  set_pwm_phase_b (value_a);
+  set_pwm_phase_c (value_c);
+#elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
+  set_pwm_phase_a (value_b);
+  set_pwm_phase_b (value_c);
+  set_pwm_phase_c (value_a);
+#endif
 }
 
 // run at each PWM period = 50us

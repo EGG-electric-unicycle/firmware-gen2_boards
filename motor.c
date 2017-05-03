@@ -1,7 +1,7 @@
 /*
  * EGG Electric Unicycle firmware
  *
- * Copyright (C) Casainho, 2015, 2106.
+ * Copyright (C) Casainho, 2015, 2106, 2017.
  *
  * Released under the GPL License, Version 3
  */
@@ -69,10 +69,17 @@ void FOC_slow_loop (void)
   /* Calc phase B current assuming balanced currents
    * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
    */
-//  adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
+#if MOTOR_TYPE == MOTOR_TYPE_EUC1
+  adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
+#elif MOTOR_TYPE == MOTOR_TYPE_EUC2
   // change currents as for this motor, the phases are: BAC and not ABC
   adc_phase_b_current = adc_phase_a_current;
   adc_phase_a_current = -adc_phase_b_current - adc_phase_c_current;
+#elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
+  adc_phase_b_current = adc_phase_c_current;
+  adc_phase_c_current = adc_phase_a_current;
+  adc_phase_a_current = -adc_phase_b_current - adc_phase_c_current;
+#endif
 
   // calc ia and ib in Amps
   float ia = qfp_fmul(adc_phase_a_current, ADC_CURRENT_GAIN_MILLIAMPS);
@@ -146,7 +153,7 @@ void FOC_slow_loop (void)
     loop_timer = 0;
 
     int motor_speed = (int) motor_speed_erps;
-//    if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
+    if (get_motor_rotation_direction() == LEFT) motor_speed *= -1;
 //GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 //    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
 //    printf ("%.2f, %d, %d\n", correction_value, duty_cycle, motor_speed);
@@ -172,6 +179,8 @@ void FOC_fast_loop (void)
     PWM_cycles_per_SVM_TABLE_step = PWM_CYCLES_COUNTER_MAX / SVM_TABLE_LEN;
   }
 
+#define DO_INTERPOLATION 1
+#if DO_INTERPOLATION == 1
   // calculate the interpolation angle
   // interpolation seems a problem when motor starts, so avoid to do it at very low speed
   if ( !(duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps >= 80)
@@ -200,6 +209,7 @@ void FOC_fast_loop (void)
       }
     }
   }
+#endif
 
   pwm_duty_cycle_controller ();
 
@@ -207,7 +217,6 @@ void FOC_fast_loop (void)
   adc_phase_a_current1 += (int) adc_get_phase_a_current_value ();
   adc_phase_c_current1 += (int) adc_get_phase_c_current_value ();
   adc_phase_current1_cycles++;
-//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 }
 
 // calc the DC offset value for the current ADCs
@@ -227,8 +236,6 @@ void motor_calc_current_dc_offset (void)
 
 void hall_sensors_read_and_action (void)
 {
-  #define HALL_SENSORS_MASK (HALL_SENSOR_A__PIN | HALL_SENSOR_B__PIN | HALL_SENSOR_C__PIN)
-
   unsigned int hall_sensors = 0;
   static unsigned int flag_count_speed = 0;
 
@@ -241,28 +248,28 @@ void hall_sensors_read_and_action (void)
     {
       // measured 12º of advanced phase over hall sensor signal
       case 8192:
-      motor_rotor_absolute_position = 312; // 6
+      motor_rotor_absolute_position = (60 * 5) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 6
       break;
 
       case 24576: // transition to positive value of hall sensor A
-      motor_rotor_absolute_position = 252; // 5
+      motor_rotor_absolute_position = (60 * 4) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 5
       break;
 
       case 16384:
-      motor_rotor_absolute_position = 192; // 4
+      motor_rotor_absolute_position = (60 * 3) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 4
       flag_count_speed = 1;
       break;
 
       case 20480:
-      motor_rotor_absolute_position = 132; // 3
+      motor_rotor_absolute_position = (60 * 2) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 3
       break;
 
       case 4096:
-      motor_rotor_absolute_position = 72; // 2
+      motor_rotor_absolute_position = (60 * 1) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 2
       break;
 
       case 12288:
-      motor_rotor_absolute_position = 12; // 1
+      motor_rotor_absolute_position = (60 * 0) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 1
 
       // count speed only when motor did rotate half of 1 electronic rotation
       if (flag_count_speed)
@@ -290,28 +297,28 @@ void hall_sensors_read_and_action (void)
     {
       // measured 12º of advanced phase over hall sensor signal
       case 8192:
-      motor_rotor_absolute_position = 153; // 3
+      motor_rotor_absolute_position = (60 * 2) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 3
       break;
 
       case 24576: // transition to positive value of hall sensor A
-      motor_rotor_absolute_position = 93; // 2
+      motor_rotor_absolute_position = (60 * 1) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 2
       break;
 
       case 16384:
-      motor_rotor_absolute_position = 33; // 1
+      motor_rotor_absolute_position = (60 * 0) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 1
       flag_count_speed = 1;
       break;
 
       case 20480:
-      motor_rotor_absolute_position = 333; // 6
+      motor_rotor_absolute_position = (60 * 5) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 6
       break;
 
       case 4096:
-      motor_rotor_absolute_position = 273; // 5
+      motor_rotor_absolute_position = (60 * 4) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 5
       break;
 
       case 12288:
-      motor_rotor_absolute_position = 213; // 4
+      motor_rotor_absolute_position = (60 * 3) + MOTOR_ROTOR_DELTA_PHASE_ANGLE; // 4
 
       if (flag_count_speed)
       {

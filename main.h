@@ -1,7 +1,7 @@
 /*
  * EGG Electric Unicycle firmware
  *
- * Copyright (C) Casainho, 2015, 2106.
+ * Copyright (C) Casainho, 2015, 2106, 2017.
  *
  * Released under the GPL License, Version 3
  */
@@ -62,6 +62,20 @@
 #define PWM_CYCLES_COUNTER_MAX	((46000*2) - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
 #define K_POSITION_CORRECTION_VALUE (0.1 / 1000.0)
 #define K_IQ_CURRENT (2)
+
+#define MOTOR_TYPE_EUC1 			0
+#define MOTOR_TYPE_EUC2 			1
+#define MOTOR_TYPE_MICROWORKS_500W_30KMH 	2 // works well only rotating to left
+#define MOTOR_TYPE MOTOR_TYPE_MICROWORKS_500W_30KMH
+
+// define the motor rotor delta phase advance over the hall sensors signal
+// value must be [0 --> 59]
+#if (MOTOR_TYPE == MOTOR_TYPE_EUC1) || (MOTOR_TYPE == MOTOR_TYPE_EUC2)
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE 34
+#elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE 34
+#endif
+
 
 #define MOTOR_R		50
 #define MOTOR_L		0.001
