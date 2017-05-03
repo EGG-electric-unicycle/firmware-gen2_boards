@@ -89,28 +89,44 @@ void FOC_slow_loop (void)
   float id = 0;
   float iq = 0;
 
-  int temp_motor_rotor_position1 = temp_motor_rotor_position;
+
+////      int temp_motor_rotor_position1 = temp_motor_rotor_position;
+////      temp_motor_rotor_position = (temp_motor_rotor_position + (270 - 1)) % 360; // this makes the motor to run (almost) smooth in both directions -- id current seems good after this
+//      float motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
+//
+//      // ABC->dq Park transform
+//      //------------------------------------------------------------------------
+//      float temp;
+//      temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians));
+//      temp += qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
+//      temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
+//      id = qfp_fmul(temp, 2.0/3.0);
+//
+////      temp_motor_rotor_position = (temp_motor_rotor_position1 + (315 - 1)) % 360; // needed for correct value calculation of iq
+////      motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
+//      temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians));
+//      temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
+//      temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
+//      iq = qfp_fmul(temp, 2.0/3.0);
+////      if (temp_direction == RIGHT) { // needed for correct sign value of iq
+////	iq *= -1.0;
+////      }
+//      //------------------------------------------------------------------------
+
+//    m_motor_state.i_alpha = ia;
+//    m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+//
+//    state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
+//    state_m->iq = c * state_m->i_beta - s * state_m->i_alpha;
+
+
+  float i_alpha = ia;
+  float i_beta = qfp_fdiv(qfp_fsub(ib, ic), ONE_BY_SQRT3);
+
   temp_motor_rotor_position = (temp_motor_rotor_position + (270 - 1)) % 360; // this makes the motor to run (almost) smooth in both directions -- id current seems good after this
   float motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
-
-  // ABC->dq Park transform
-  //------------------------------------------------------------------------
-  float temp;
-  temp = qfp_fmul(ia, qfp_fcos(motor_rotor_position_radians));
-  temp += qfp_fmul(ib, qfp_fcos(motor_rotor_position_radians + DEGRES_120_IN_RADIANS));
-  temp += qfp_fmul(ic, qfp_fcos(motor_rotor_position_radians - DEGRES_120_IN_RADIANS));
-  id = qfp_fmul(temp, 2.0/3.0);
-
-  temp_motor_rotor_position = (temp_motor_rotor_position1 + (315 - 1)) % 360; // needed for correct value calculation of iq
-  motor_rotor_position_radians = degrees_to_radiands(temp_motor_rotor_position);
-  temp = qfp_fmul(ia, qfp_fsin(motor_rotor_position_radians));
-  temp += qfp_fmul(ib, qfp_fsin((motor_rotor_position_radians) + DEGRES_120_IN_RADIANS));
-  temp += qfp_fmul(ic, qfp_fsin((motor_rotor_position_radians) - DEGRES_120_IN_RADIANS));
-  iq = qfp_fmul(temp, 2.0/3.0);
-  if (temp_direction == RIGHT) { // needed for correct sign value of iq
-    iq *= -1.0;
-  }
-  //------------------------------------------------------------------------
+  id = qfp_fadd(qfp_fmul(i_alpha, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(i_beta, qfp_fsin(motor_rotor_position_radians)));
+  iq = qfp_fsub(qfp_fmul(i_beta, qfp_fcos(motor_rotor_position_radians)), qfp_fmul(i_alpha, qfp_fsin(motor_rotor_position_radians)));
 
   // Filter Id and Iq currents
   //------------------------------------------------------------------------
@@ -132,7 +148,7 @@ void FOC_slow_loop (void)
   }
   if (correction_value > 30.0) { correction_value = 30.0; }
   if (correction_value < -30.0) { correction_value = -30.0; }
-//  position_correction_value = (int) correction_value;
+  position_correction_value = (int) correction_value;
   // ------------------------------------------------------------------------
 
   static unsigned int loop_timer1 = 0;
