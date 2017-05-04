@@ -21,25 +21,28 @@
 #include "IMU/imu.h"
 #include "pwm_duty_cycle_controller.h"
 
-unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
-unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
-unsigned int PWM_cycles_counter = 0;
-unsigned int interpolation_PWM_cycles_counter = 0;
-int motor_rotor_position = 0; // in degrees
-unsigned int motor_rotor_absolute_position = 0; // in degrees
-unsigned int interpolation_counter = 0;
-int position_correction_value = 0; // in degrees
+volatile unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
+volatile unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
+volatile unsigned int PWM_cycles_counter = 0;
+volatile unsigned int interpolation_PWM_cycles_counter = 0;
+volatile int motor_rotor_position = 0; // in degrees
+volatile unsigned int motor_rotor_absolute_position = 0; // in degrees
+volatile unsigned int interpolation_counter = 0;
+volatile int position_correction_value = 0; // in degrees
+volatile int interpolation_angle_step = 0; // x1000
+volatile int interpolation_sum = 0; // x1000
+volatile int interpolation_angle = 0;
 
-int adc_phase_a_current = 0;
-int adc_phase_b_current = 0;
-int adc_phase_c_current = 0;
+volatile int adc_phase_a_current = 0;
+volatile int adc_phase_b_current = 0;
+volatile int adc_phase_c_current = 0;
 
-int adc_phase_a_current1 = 0;
-int adc_phase_c_current1 = 0;
-int adc_phase_current1_cycles = 0;
+volatile int adc_phase_a_current1 = 0;
+volatile int adc_phase_c_current1 = 0;
+volatile int adc_phase_current1_cycles = 0;
 
-int adc_phase_a_current_offset;
-int adc_phase_c_current_offset;
+volatile int adc_phase_a_current_offset;
+volatile int adc_phase_c_current_offset;
 
 // runs every 1ms
 void FOC_slow_loop (void)
@@ -186,7 +189,8 @@ void FOC_fast_loop (void)
   {
     PWM_cycles_counter = 0;
     motor_speed_erps = 0;
-    PWM_cycles_per_SVM_TABLE_step = PWM_CYCLES_COUNTER_MAX / SVM_TABLE_LEN;
+    interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_CYCLES_COUNTER_MAX;
+    interpolation_sum = 0;
   }
 
 #define DO_INTERPOLATION 1
@@ -195,28 +199,20 @@ void FOC_fast_loop (void)
   // interpolation seems a problem when motor starts, so avoid to do it at very low speed
   if ( !(duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps >= 80)
   {
-    interpolation_PWM_cycles_counter++;
-    if (interpolation_PWM_cycles_counter > PWM_cycles_per_SVM_TABLE_step)
+    if (interpolation_angle_step <= (60 * 1000)) // interpolate only for angle <= 60º
     {
-      interpolation_PWM_cycles_counter = 0;
-      if (interpolation_counter <= 60) // limit max interpolation value/angle
-      {
-	interpolation_counter++;
+      // add step interpolation value to motor_rotor_position
+      interpolation_sum += interpolation_angle_step;
+      interpolation_angle = interpolation_sum / 1000;
 
-	if (get_motor_rotation_direction() == RIGHT)
-	{
-	  motor_rotor_position = (motor_rotor_position + 359) % 360; // the same as motor_rotor_position--
-	}
-	else
-	{
-	  motor_rotor_position = (motor_rotor_position + 1) % 360;
-	}
+      if (get_motor_rotation_direction() == RIGHT) {
+	motor_rotor_position = motor_rotor_absolute_position + position_correction_value - interpolation_angle;
       }
-      else
-      {
-	// keep this value static over the loops, when interpolation_position >= 60
-	interpolation_PWM_cycles_counter = PWM_cycles_per_SVM_TABLE_step;
+      else {
+	motor_rotor_position = motor_rotor_absolute_position + position_correction_value + interpolation_angle;
       }
+
+      if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
     }
   }
 #endif
@@ -286,7 +282,8 @@ void hall_sensors_read_and_action (void)
       {
 	  flag_count_speed = 0;
 	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-	  PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+	  interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_cycles_counter;
+	  interpolation_sum = 0;
 	  PWM_cycles_counter = 0;
       }
       break;
@@ -296,7 +293,7 @@ void hall_sensors_read_and_action (void)
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value + interpolation_angle) % 360;
     if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
     interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
@@ -334,7 +331,8 @@ void hall_sensors_read_and_action (void)
       {
 	  flag_count_speed = 0;
 	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-	  PWM_cycles_per_SVM_TABLE_step = PWM_cycles_counter / SVM_TABLE_LEN;
+	  interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_cycles_counter;
+	  interpolation_angle = 0;
 	  PWM_cycles_counter = 0;
       }
       break;
@@ -344,9 +342,9 @@ void hall_sensors_read_and_action (void)
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value - interpolation_angle) % 360;
     if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative
-    interpolation_counter = 0;
+    interpolation_sum = 0;
     interpolation_PWM_cycles_counter = 0;
   }
 }

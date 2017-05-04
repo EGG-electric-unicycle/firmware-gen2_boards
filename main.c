@@ -22,7 +22,7 @@
 #include "usart.h"
 #include "IMU/imu.h"
 
-static unsigned int _ms;
+static volatile unsigned int _ms;
 
 void delay_ms (unsigned int ms)
 {
@@ -47,7 +47,7 @@ void initialize (void)
 
   gpio_init ();
   IMU_init ();
-  TIM2_init ();
+//  TIM2_init ();
   adc_init ();
   pwm_init ();
 //  TIM4_init ();

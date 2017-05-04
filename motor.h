@@ -27,17 +27,17 @@
 #define degrees_to_radiands(angle) qfp_fmul(angle, M_PI/180.0)
 #define radians_to_degrees(angle) qfp_fmul(angle, 180.0/M_PI)
 
-extern unsigned int motor_speed_erps;
-extern unsigned int PWM_cycles_counter;
-extern int motor_rotor_position;
-extern int position_correction_value;
+extern volatile unsigned int motor_speed_erps;
+extern volatile unsigned int PWM_cycles_counter;
+extern volatile int motor_rotor_position;
+extern volatile int position_correction_value;
 
-extern int adc_phase_a_current;
-extern int adc_phase_b_current;
-extern int adc_phase_c_current;
+extern volatile int adc_phase_a_current;
+extern volatile int adc_phase_b_current;
+extern volatile int adc_phase_c_current;
 
-extern int adc_phase_a_current_offset;
-extern int adc_phase_c_current_offset;
+extern volatile int adc_phase_a_current_offset;
+extern volatile int adc_phase_c_current_offset;
 
 void hall_sensors_interrupt (void);
 void motor_calc_current_dc_offset (void);

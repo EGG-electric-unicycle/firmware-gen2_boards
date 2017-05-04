@@ -34,13 +34,14 @@ SIZE     = $(TCPREFIX)size
 # 3 = Optimize yet more. Turns on -finline-functions and more.
 # s = -Os enables all -O2 optimizations that do not typically increase code
 #     size.
+# g = For debug
 # (See gcc manual for further information)
 OPT = 0
 
 # -mfix-cortex-m3-ldrd should be enabled by default for Cortex M3.
 # CFLAGS -H show header files
 AFLAGS  = -I -Ispl/CMSIS -Ispl/inc -c -g -mcpu=cortex-m3 -mthumb
-CFLAGS  = -I./ -I./spl/CMSIS -I./spl/CMSIS/inc -I./spl/inc -I./qfplib-m3 -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -c -fno-common -O$(OPT) -g -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections 
+CFLAGS  = -I./ -I./spl/CMSIS -I./spl/CMSIS/inc -I./spl/inc -I./qfplib-m3 -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -c -fno-common -O$(OPT) -ggdb -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections 
 # Need following option for LTO as LTO will treat retarget functions as
 # unused without following option
 CFLAGS+ = -fno-builtin

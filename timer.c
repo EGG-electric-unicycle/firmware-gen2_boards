@@ -70,12 +70,10 @@ void TIM2_init(void)
 // Used for implementation of 1kHz (1ms) FOC slow loop
 void TIM4_IRQHandler (void)
 {
-//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
 //  FOC_slow_loop ();
 
   /* Clear TIMx TIM_IT_Update pending interrupt bit */
   TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-//GPIO_ResetBits(BUZZER__PORT, BUZZER__PIN);
 }
 
 void TIM4_init(void)
