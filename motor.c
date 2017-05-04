@@ -206,13 +206,13 @@ void FOC_fast_loop (void)
       interpolation_angle = interpolation_sum / 1000;
 
       if (get_motor_rotation_direction() == RIGHT) {
-	motor_rotor_position = motor_rotor_absolute_position + position_correction_value - interpolation_angle;
+	motor_rotor_position = (motor_rotor_absolute_position + position_correction_value - interpolation_angle) % 360;
+	if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
       }
       else {
-	motor_rotor_position = motor_rotor_absolute_position + position_correction_value + interpolation_angle;
+	motor_rotor_position = (motor_rotor_absolute_position + position_correction_value + interpolation_angle) % 360;
+	if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
       }
-
-      if (motor_rotor_position < 0) { motor_rotor_position *= -1; }
     }
   }
 #endif
@@ -250,7 +250,7 @@ void hall_sensors_read_and_action (void)
 
   if (get_motor_rotation_direction() == LEFT)
   {
-    switch (hall_sensors)
+    switch (hall_sensors) // angle increments with rotation
     {
       // measured 12º of advanced phase over hall sensor signal
       case 8192:
@@ -293,14 +293,14 @@ void hall_sensors_read_and_action (void)
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value + interpolation_angle) % 360;
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
     if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
     interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
   }
   else if (get_motor_rotation_direction() == RIGHT)
   {
-    switch (hall_sensors)
+    switch (hall_sensors) // angle DEcrements with rotation
     {
       // measured 12º of advanced phase over hall sensor signal
       case 8192:
@@ -313,7 +313,16 @@ void hall_sensors_read_and_action (void)
 
       case 16384:
       motor_rotor_absolute_position = (60 * 0) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 1
-      flag_count_speed = 1;
+
+      // count speed only when motor did rotate half of 1 electronic rotation
+      if (flag_count_speed)
+      {
+	  flag_count_speed = 0;
+	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
+	  interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_cycles_counter;
+	  interpolation_sum = 0;
+	  PWM_cycles_counter = 0;
+      }
       break;
 
       case 20480:
@@ -326,15 +335,7 @@ void hall_sensors_read_and_action (void)
 
       case 12288:
       motor_rotor_absolute_position = (60 * 3) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 4
-
-      if (flag_count_speed)
-      {
-	  flag_count_speed = 0;
-	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
-	  interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_cycles_counter;
-	  interpolation_angle = 0;
-	  PWM_cycles_counter = 0;
-      }
+      flag_count_speed = 1;
       break;
 
       default:
@@ -342,9 +343,9 @@ void hall_sensors_read_and_action (void)
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value - interpolation_angle) % 360;
-    if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative
-    interpolation_sum = 0;
+    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
+    if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
+    interpolation_counter = 0;
     interpolation_PWM_cycles_counter = 0;
   }
 }

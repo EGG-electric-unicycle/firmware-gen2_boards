@@ -418,9 +418,8 @@ void apply_duty_cycle (int duty_cycle_value)
 
   // scale and apply _duty_cycle
   int temp;
-  temp = (motor_rotor_position + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
-  value_a = svm_table[(unsigned int) temp];
+  temp = motor_rotor_position;
+  value_a = svm_table[(unsigned int) motor_rotor_position];
   if (value_a > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
     value_a = (value_a - MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX) * ((unsigned int) _duty_cycle);
@@ -435,8 +434,7 @@ void apply_duty_cycle (int duty_cycle_value)
   }
 
   // add 120 degrees and limit
-  temp = (motor_rotor_position + 120 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
+  temp = (motor_rotor_position + 120) % 360;
   value_b = svm_table[(unsigned int) temp];
   if (value_b > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
@@ -452,8 +450,7 @@ void apply_duty_cycle (int duty_cycle_value)
   }
 
   // subtract 120 degrees and limit
-  temp = (motor_rotor_position + 240 + position_correction_value) % 360;
-  if (temp < 0) { temp *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
+  temp = (motor_rotor_position + 240) % 360;
   value_c = svm_table[(unsigned int) temp];
   if (value_c > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
