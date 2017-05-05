@@ -61,7 +61,8 @@
 
 #define PWM_CYCLES_COUNTER_MAX	((46000*2) - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
 //#define K_POSITION_CORRECTION_VALUE (0.025 / 1000.0)
-#define K_POSITION_CORRECTION_VALUE (0.1 / 1000.0)
+#define K_POSITION_CORRECTION_VALUE (0.05 / 1000.0)
+#define D_POSITION_CORRECTION_VALUE (1 / 1000.0)
 #define K_IQ_CURRENT (2)
 
 #define MOTOR_TYPE_EUC1 			0

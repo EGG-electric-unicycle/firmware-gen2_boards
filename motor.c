@@ -141,7 +141,16 @@ void FOC_slow_loop (void)
   // Calculate phase/angle correction value to try keep id current = 0
   //------------------------------------------------------------------------
   static float correction_value = 0;
+
+  // I
   correction_value = qfp_fsub(correction_value, qfp_fmul(K_POSITION_CORRECTION_VALUE, id));
+
+  // D
+  static float id_old = 0;
+  float delta = qfp_fsub(id, id_old);
+  id_old = id;
+  correction_value = qfp_fsub(correction_value, qfp_fmul(D_POSITION_CORRECTION_VALUE, delta));
+
 
   if ((duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps < 80) // avoid PI controller windup
   { // motor_speed_erps < 80 seems a good value to avoid motor stalling at start up, very low speed
