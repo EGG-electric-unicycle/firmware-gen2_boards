@@ -60,7 +60,8 @@
 //#define MOTOR_PWM_DT	0.0001
 
 #define PWM_CYCLES_COUNTER_MAX	((46000*2) - 1) // estimated as 1 rotation in about 4.6 seconds for the MicroWorks 500W 30km/h (44 magnets)
-#define K_POSITION_CORRECTION_VALUE (0.025 / 1000.0)
+//#define K_POSITION_CORRECTION_VALUE (0.025 / 1000.0)
+#define K_POSITION_CORRECTION_VALUE (0.1 / 1000.0)
 #define K_IQ_CURRENT (2)
 
 #define MOTOR_TYPE_EUC1 			0
@@ -71,8 +72,8 @@
 // define the motor rotor delta phase advance over the hall sensors signal
 // value must be [0 --> 59]
 #if (MOTOR_TYPE == MOTOR_TYPE_EUC1) || (MOTOR_TYPE == MOTOR_TYPE_EUC2)
-  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT 	30
-  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT 	15
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT 	50
+  #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT 	-2
 #elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
   #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT 34
   #define MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT 34
@@ -102,6 +103,7 @@
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);
 void printDouble(double v, int decimalDigits);
+int mod_angle_degrees (int a);
 
 
 

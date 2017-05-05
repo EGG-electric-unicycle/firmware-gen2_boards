@@ -24,10 +24,8 @@
 volatile unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
 volatile unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
 volatile unsigned int PWM_cycles_counter = 0;
-volatile unsigned int interpolation_PWM_cycles_counter = 0;
 volatile int motor_rotor_position = 0; // in degrees
 volatile unsigned int motor_rotor_absolute_position = 0; // in degrees
-volatile unsigned int interpolation_counter = 0;
 volatile int position_correction_value = 0; // in degrees
 volatile int interpolation_angle_step = 0; // x1000
 volatile int interpolation_sum = 0; // x1000
@@ -199,19 +197,19 @@ void FOC_fast_loop (void)
   // interpolation seems a problem when motor starts, so avoid to do it at very low speed
   if ( !(duty_cycle < 5 && duty_cycle > -5) || motor_speed_erps >= 80)
   {
-    if (interpolation_angle_step <= (60 * 1000)) // interpolate only for angle <= 60º
+    if (interpolation_sum <= (60 * 1000)) // interpolate only for angle <= 60º
     {
       // add step interpolation value to motor_rotor_position
       interpolation_sum += interpolation_angle_step;
       interpolation_angle = interpolation_sum / 1000;
 
-      if (get_motor_rotation_direction() == RIGHT) {
-	motor_rotor_position = (motor_rotor_absolute_position + position_correction_value - interpolation_angle) % 360;
-	if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
+      if (get_motor_rotation_direction() == RIGHT)
+      {
+	motor_rotor_position = mod_angle_degrees(motor_rotor_absolute_position + position_correction_value - interpolation_angle);
       }
-      else {
-	motor_rotor_position = (motor_rotor_absolute_position + position_correction_value + interpolation_angle) % 360;
-	if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
+      else
+      {
+	motor_rotor_position = mod_angle_degrees(motor_rotor_absolute_position + position_correction_value + interpolation_angle);
       }
     }
   }
@@ -252,30 +250,29 @@ void hall_sensors_read_and_action (void)
   {
     switch (hall_sensors) // angle increments with rotation
     {
-      // measured 12º of advanced phase over hall sensor signal
       case 8192:
-      motor_rotor_absolute_position = (60 * 5) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT; // 6
+      motor_rotor_absolute_position = (60 * 5); // 6
       break;
 
       case 24576: // transition to positive value of hall sensor A
-      motor_rotor_absolute_position = (60 * 4) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT; // 5
+      motor_rotor_absolute_position = (60 * 4); // 5
       break;
 
       case 16384:
-      motor_rotor_absolute_position = (60 * 3) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT; // 4
+      motor_rotor_absolute_position = (60 * 3); // 4
       flag_count_speed = 1;
       break;
 
       case 20480:
-      motor_rotor_absolute_position = (60 * 2) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT; // 3
+      motor_rotor_absolute_position = (60 * 2); // 3
       break;
 
       case 4096:
-      motor_rotor_absolute_position = (60 * 1) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT; // 2
+      motor_rotor_absolute_position = (60 * 1); // 2
       break;
 
       case 12288:
-      motor_rotor_absolute_position = (60 * 0) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT; // 1
+      motor_rotor_absolute_position = (60 * 0); // 1
 
       // count speed only when motor did rotate half of 1 electronic rotation
       if (flag_count_speed)
@@ -283,7 +280,6 @@ void hall_sensors_read_and_action (void)
 	  flag_count_speed = 0;
 	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
 	  interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_cycles_counter;
-	  interpolation_sum = 0;
 	  PWM_cycles_counter = 0;
       }
       break;
@@ -293,26 +289,22 @@ void hall_sensors_read_and_action (void)
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
-    if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
-    interpolation_counter = 0;
-    interpolation_PWM_cycles_counter = 0;
+    motor_rotor_absolute_position += MOTOR_ROTOR_DELTA_PHASE_ANGLE_LEFT;
   }
   else if (get_motor_rotation_direction() == RIGHT)
   {
     switch (hall_sensors) // angle DEcrements with rotation
     {
-      // measured 12º of advanced phase over hall sensor signal
       case 8192:
-      motor_rotor_absolute_position = (60 * 2) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 3
+      motor_rotor_absolute_position = (60 * 2); // 3
       break;
 
       case 24576: // transition to positive value of hall sensor A
-      motor_rotor_absolute_position = (60 * 1) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 2
+      motor_rotor_absolute_position = (60 * 1); // 2
       break;
 
       case 16384:
-      motor_rotor_absolute_position = (60 * 0) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 1
+      motor_rotor_absolute_position = (60 * 0); // 1
 
       // count speed only when motor did rotate half of 1 electronic rotation
       if (flag_count_speed)
@@ -320,21 +312,20 @@ void hall_sensors_read_and_action (void)
 	  flag_count_speed = 0;
 	  motor_speed_erps = PWM_CYCLES_COUNTER_MAX / PWM_cycles_counter;
 	  interpolation_angle_step = (SVM_TABLE_LEN * 1000) / PWM_cycles_counter;
-	  interpolation_sum = 0;
 	  PWM_cycles_counter = 0;
       }
       break;
 
       case 20480:
-      motor_rotor_absolute_position = (60 * 5) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 6
+      motor_rotor_absolute_position = (60 * 5); // 6
       break;
 
       case 4096:
-      motor_rotor_absolute_position = (60 * 4) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 5
+      motor_rotor_absolute_position = (60 * 4); // 5
       break;
 
       case 12288:
-      motor_rotor_absolute_position = (60 * 3) + MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT; // 4
+      motor_rotor_absolute_position = (60 * 3); // 4
       flag_count_speed = 1;
       break;
 
@@ -343,11 +334,11 @@ void hall_sensors_read_and_action (void)
       break;
     }
 
-    motor_rotor_position = (motor_rotor_absolute_position + position_correction_value) % 360;
-    if (motor_rotor_position < 0) { motor_rotor_position *= -1; } // angle value can be negative in some values of position_correction_value negative, need to convert to positive
-    interpolation_counter = 0;
-    interpolation_PWM_cycles_counter = 0;
+    motor_rotor_absolute_position += MOTOR_ROTOR_DELTA_PHASE_ANGLE_RIGHT;
   }
+
+  motor_rotor_position = mod_angle_degrees(motor_rotor_absolute_position + position_correction_value);
+  interpolation_sum = 0;
 }
 
 void hall_sensors_interrupt (void)

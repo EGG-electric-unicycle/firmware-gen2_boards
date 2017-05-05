@@ -434,7 +434,7 @@ void apply_duty_cycle (int duty_cycle_value)
   }
 
   // add 120 degrees and limit
-  temp = (motor_rotor_position + 120) % 360;
+  temp = mod_angle_degrees(motor_rotor_position + 120);
   value_b = svm_table[(unsigned int) temp];
   if (value_b > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {
@@ -450,7 +450,7 @@ void apply_duty_cycle (int duty_cycle_value)
   }
 
   // subtract 120 degrees and limit
-  temp = (motor_rotor_position + 240) % 360;
+  temp = mod_angle_degrees(motor_rotor_position + 240);
   value_c = svm_table[(unsigned int) temp];
   if (value_c > MIDDLE_PWM_VALUE_DUTY_CYCLE_MAX)
   {

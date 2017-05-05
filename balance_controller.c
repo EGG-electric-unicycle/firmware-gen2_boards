@@ -30,7 +30,7 @@ void balance_controller(void)
   float dt;
   float temp;
 
-  angle_error = IMU_get_angle_error ();
+//  angle_error = IMU_get_angle_error ();
 
   duty_cycle_f = qfp_fmul(angle_error, 33.3); // MAX angle 30; 30*33.3 = 1000
 //  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
@@ -67,7 +67,7 @@ void balance_controller(void)
   value = value / 2048;
   duty_cycle_f = (float) value;
 #elif PWM_INPUT == PWM_INPUT_FIXED_VALUE
-  duty_cycle_f = 120.0;
+  duty_cycle_f = -40.0;
 #endif
 
   set_pwm_duty_cycle ((int) duty_cycle_f);

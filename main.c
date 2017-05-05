@@ -24,6 +24,14 @@
 
 static volatile unsigned int _ms;
 
+int mod_angle_degrees (int a)
+{
+  int ret = a % 360;
+  if(ret < 0)
+    ret += 360;
+  return ret;
+}
+
 void delay_ms (unsigned int ms)
 {
   _ms = 1;
@@ -49,22 +57,22 @@ void initialize (void)
   IMU_init ();
 //  TIM2_init ();
   adc_init ();
-  pwm_init ();
 //  TIM4_init ();
   buzzer_init ();
   usart1_bluetooth_init ();
   hall_sensor_init ();
+  pwm_init ();
 }
 
 int main(void)
 {
-  initialize ();
-
   /* needed for printf */
   // turn off buffers, so IO occurs immediately
   setvbuf(stdin, NULL, _IONBF, 0);
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
+
+  initialize ();
 
   // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
