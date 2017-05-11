@@ -150,24 +150,50 @@ char * stack = (char*) __get_MSP();
  Read a character to a file. `libc' subroutines will use this system routine for input from all files, including stdin
  Returns -1 on error or blocks until the number of characters have been read.
  */
-
-
 int _read(int file, char *ptr, int len) {
-    int n;
-    int num = 0;
-    switch (file) {
-    case STDIN_FILENO:
-        for (n = 0; n < len; n++) {
-            char c = usart1_receive_char ();
-            *ptr++ = c;
-            num++;
-        }
-        break;
-    default:
-        errno = EBADF;
-        return -1;
+//    int n;
+//    int num = 0;
+//    switch (file) {
+//    case STDIN_FILENO:
+//        for (n = 0; n < len; n++) {
+//            char c = usart1_receive_char ();
+//            *ptr++ = c;
+//            num++;
+//        }
+//        break;
+//    default:
+//        errno = EBADF;
+//        return -1;
+//    }
+//    return num;
+
+  int n;
+  int num = 0;
+  switch (file) {
+  case STDIN_FILENO:
+
+    if (rx_len > 0) // read data only when buffer have a complete command -- see usart.c
+    {
+      while (rx_len > 0)
+      {
+	*ptr++ = rx_buffer[num];
+	num++;
+	rx_len--;
+      }
+
+      rx_i = 0;
     }
-    return num;
+    else
+    {
+      num = -1;
+    }
+    break;
+
+  default:
+      errno = EBADF;
+      return -1;
+  }
+  return num;
 }
 
 /*

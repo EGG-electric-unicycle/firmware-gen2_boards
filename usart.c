@@ -13,8 +13,11 @@
 #include "stm32f10x_usart.h"
 
 char tx_buffer[TX_LEN];
+char rx_buffer[RX_LEN];
 unsigned int tx_i = 0; // start at first byte
 unsigned int tx_len = 0;
+unsigned int rx_i = 0; // start at first byte
+unsigned int rx_len = 0;
 
 void usart1_bluetooth_init(void)
 {
@@ -44,6 +47,7 @@ void usart1_bluetooth_init(void)
   /* Enable GPIO clock */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO, ENABLE);
 
+  USART_DeInit(USART1);
 
   USART_InitTypeDef USART_InitStructure;
   USART_InitStructure.USART_BaudRate = 115200;
@@ -54,9 +58,11 @@ void usart1_bluetooth_init(void)
   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
   USART_Init(USART1, &USART_InitStructure);
 
-  /* Enable USARTy Receive and Transmit interrupts */
-//  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-//  USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
+  /* Enable USART1 Receive and Transmit interrupts */
+  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
+  USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+  USART_ClearITPendingBit(USART1, USART_IT_TXE);
 
   /* Enable the USART1 */
   USART_Cmd(USART1, ENABLE);
@@ -66,8 +72,12 @@ void usart1_bluetooth_init(void)
 void USART1_IRQHandler()
 {
   // The interrupt may be from Tx, Rx, or both.
-  // If there is a pending Tx interrupt...
-  if((USART1->SR & USART_SR_TXE) != 0)
+  if (USART_GetITStatus(USART1, USART_IT_ORE) == SET)
+  {
+    USART_ReceiveData(USART1); // get ride of this interrupt flag
+    return;
+  }
+  else if (USART_GetITStatus(USART1, USART_IT_TXE) == SET)
   {
     // If the Tx index is less than the Tx packet length...
     if(tx_i < (tx_len - 1))
@@ -83,30 +93,36 @@ void USART1_IRQHandler()
       tx_i = 0; // reset TX buffer index
     }
   }
+  else if (USART_GetITStatus(USART1, USART_IT_RXNE) == SET)
+  {
+    // Triggers EVERY time a byte is received on the UART
+    unsigned char rx_byte;
+    rx_byte = USART1->DR;    // read byte
 
-//  // If there is a pending Rx interrupt...
-//  if((USART1->SR & USART_SR_RXNE) != 0)
-//  {
-//    // Triggers EVERY time a byte is received on the UART
-//    unsigned char rx_byte;
-//    rx_byte = USART1->DR;    // read byte
-//
-//    // If START byte is received...
-//    if(rx_byte == START)
-//    {
-//      // Start a new packet buffer.
-//      rx_buffer[0] = START;
-//      rx_i = 1;
-//    }
-//    // If the packet is not full...
-//    else if(rx_i < RX_LEN)
-//    {
-//      rx_buffer[rx_i] = rx_byte;
-//      rx_i++;
-//    }
-//    // If the packets IS full (rx_i == RX_LEN),
-//    // main() will trigger rx().
-//  }
+    if (rx_byte == '\r') return;
+
+    // buffer should be full or there is data on the buffer waiting to be processed by _read()
+    // so discard the received data and return - we should not get to this condition
+    if ((rx_i >= RX_LEN) || (rx_len > 0))
+    {
+      if (rx_i >= RX_LEN) // buffer is full and didn't received \n, so reset the buffer and start again
+      {
+	rx_len = 0;
+	rx_i = 0;
+      }
+
+      return;
+    }
+
+    rx_buffer[rx_i] = rx_byte;
+    if (rx_buffer[rx_i] == '\n') // end of line/data command
+    {
+      rx_len = rx_i + 1; // scanf() / _read() should now read the data from rx_buffer[] and empty it
+    }
+    rx_i++;
+
+    USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+  }
 }
 
 void usart1_send_data ()
@@ -120,7 +136,7 @@ void usart1_send_data ()
 
 unsigned char usart1_send_char (unsigned char c)
 {
-  while (USART_GetFlagStatus (USART1, USART_FLAG_TXE) == RESET);
+  while (USART_GetFlagStatus (USART1, USART_FLAG_TXE) == RESET) ;
 
   USART_SendData (USART1, c);
 
@@ -137,7 +153,7 @@ void usart1_send_str (unsigned char *data)
 
 unsigned char usart1_receive_char (void)
 {
-  while (USART_GetFlagStatus (USART1, USART_FLAG_RXNE) == RESET);
+  while (USART_GetFlagStatus (USART1, USART_FLAG_RXNE) == RESET) ;
 
   return (USART_ReceiveData (USART1));
 }

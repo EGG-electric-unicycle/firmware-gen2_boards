@@ -78,24 +78,60 @@ int main(void)
   unsigned int duty_cycle_value;
 //  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
 //      duty_cycle_value > 1880) ;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
+//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
 
   motor_calc_current_dc_offset ();
 
   set_pwm_duty_cycle (0);
-  enable_phase_a ();
-  enable_phase_b ();
-  enable_phase_c ();
+//  enable_phase_a ();
+//  enable_phase_b ();
+//  enable_phase_c ();
 
   hall_sensors_interrupt ();
 
   static unsigned int moving_average = 4095 / 2;
   unsigned int alpha = 20;
+  char buffer[64];
+  float value;
   while (1)
   {
     delay_ms (1);
+//
+//    FOC_slow_loop ();
 
-    FOC_slow_loop ();
+    int number_bytes_readed;
+    number_bytes_readed = scanf("%s", &buffer);
+
+    if (number_bytes_readed > 0)
+    {
+      switch (buffer[0])
+      {
+	case 'p':
+
+//	  printf("p = ");
+	  printf("%s", &buffer);
+//	  printf("p = ");
+	  break;
+
+	case 'i':
+	  break;
+
+	case 'd':
+	  break;
+
+	default:
+	  break;
+      }
+    }
+
+
+//
+//
+//    if (number_bytes_readed > 0)
+//    {
+//      printf("%d - ", number_bytes_readed);
+//      printf("%d - ", number_bytes_readed);
+//    }
   }
 }
 
