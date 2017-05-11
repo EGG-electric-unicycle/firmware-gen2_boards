@@ -109,8 +109,8 @@ float IMU_get_angle_error (void)
   angle_log = angle;
   angle_error_log = current_angle_error;
 
-//  if (current_angle_error >= ANGLE_MAX_ERROR) { current_angle_error = ANGLE_MAX_ERROR; }
-//  if (current_angle_error <= -ANGLE_MAX_ERROR) { current_angle_error = -ANGLE_MAX_ERROR; }
+  if (current_angle_error >= ANGLE_MAX_ERROR) { current_angle_error = ANGLE_MAX_ERROR; }
+  if (current_angle_error <= -ANGLE_MAX_ERROR) { current_angle_error = -ANGLE_MAX_ERROR; }
 
   return current_angle_error;
 }

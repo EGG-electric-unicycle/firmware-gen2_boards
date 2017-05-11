@@ -12,6 +12,10 @@
 #define KI_BALANCE_CONTROLLER	0.5
 #define KD_BALANCE_CONTROLLER	50.0
 
+extern float kp;
+extern float ki;
+extern float kd;
+
 void balance_controller(void);
 
 #endif

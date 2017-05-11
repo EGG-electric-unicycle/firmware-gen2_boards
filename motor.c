@@ -20,6 +20,7 @@
 #include "filter.h"
 #include "IMU/imu.h"
 #include "pwm_duty_cycle_controller.h"
+#include "balance_controller.h"
 
 volatile unsigned int motor_speed_erps = 0; // motor speed in electronic rotations per second
 volatile unsigned int PWM_cycles_per_SVM_TABLE_step = 0;
@@ -179,7 +180,14 @@ void FOC_slow_loop (void)
     if (get_motor_rotation_direction() == LEFT) { motor_speed *= -1; }
 
       // balance controller debug
-    printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+    if (log_enable)
+    {
+      printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+    }
+    else
+    {
+      printf ("%d, %f, %f, %f\n", duty_cycle, kp, ki, kd);
+    }
 //    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
 
       // motor FOC debug

@@ -87,7 +87,7 @@
 #define MOTOR_GAMA	100000 // 60 / L as noted on VESC mcconf_default.h
 #define MOTOR_PWM_DT	0.0001
 
-#define MOTOR_MIN_DUTYCYCLE 70
+#define MOTOR_MIN_DUTYCYCLE 60
 
 #define MOTOR_MAX_CURRENT	1000 // Define max motor current in mA
 #define MOTOR_MAX_SPEED 	20000 // meter per hour
@@ -99,12 +99,15 @@
 //#define PWM_DUTY_CYCLE_CONTROLLER_COUNTER (((1 * 1000000) / (PWM_PERIOD_US)) / 1000)
 #define PWM_DUTY_CYCLE_CONTROLLER_COUNTER 4
 
-#define ANGLE_MAX_ERROR 30.0
+#define ANGLE_MAX_ERROR 3.0
+
+extern unsigned int log_enable;
 
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);
 void printDouble(double v, int decimalDigits);
 int mod_angle_degrees (int a);
+float abs_f (float value);
 
 
 

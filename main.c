@@ -21,8 +21,11 @@
 #include "motor.h"
 #include "usart.h"
 #include "IMU/imu.h"
+#include "balance_controller.h"
 
 static volatile unsigned int _ms;
+
+unsigned int log_enable = 0;
 
 int mod_angle_degrees (int a)
 {
@@ -30,6 +33,14 @@ int mod_angle_degrees (int a)
   if(ret < 0)
     ret += 360;
   return ret;
+}
+
+float abs_f (float value)
+{
+  if (value < 0)
+    return qfp_fmul(value, -1.0);
+  else
+    return value;
 }
 
 void delay_ms (unsigned int ms)
@@ -78,14 +89,14 @@ int main(void)
   unsigned int duty_cycle_value;
 //  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
 //      duty_cycle_value > 1880) ;
-//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
 
   motor_calc_current_dc_offset ();
 
   set_pwm_duty_cycle (0);
-//  enable_phase_a ();
-//  enable_phase_b ();
-//  enable_phase_c ();
+  enable_phase_a ();
+  enable_phase_b ();
+  enable_phase_c ();
 
   hall_sensors_interrupt ();
 
@@ -96,43 +107,43 @@ int main(void)
   while (1)
   {
     delay_ms (1);
-//
-//    FOC_slow_loop ();
 
-    int number_bytes_readed;
+    FOC_slow_loop ();
+
+    // get the parametters for PID, from the bluetooth
+    int objects_readed;
     float number;
-    number_bytes_readed = scanf("%f", &number);
+    fflush(stdin); // needed to unblock scanf() after a not expected formatted data
+    objects_readed = scanf("%s %f", &buffer, &value);
 
-    if (number_bytes_readed > 0)
+    if (objects_readed > 0)
     {
       switch (buffer[0])
       {
 	case 'p':
-
-//	  printf("p = ");
-	  printf("%d", &number);
-//	  printf("p = ");
+	  printf("p = %f", value);
+	  kp = value;
 	  break;
 
 	case 'i':
+	  printf("i = %f", value);
+	  ki = value;
 	  break;
 
 	case 'd':
+	  printf("d = %f", value);
+	  kd = value;
+	  break;
+
+	case 'l':
+	  if (value == 1) log_enable = 1;
+	  else log_enable = 0;
 	  break;
 
 	default:
 	  break;
       }
     }
-
-
-//
-//
-//    if (number_bytes_readed > 0)
-//    {
-//      printf("%d - ", number_bytes_readed);
-//      printf("%d - ", number_bytes_readed);
-//    }
   }
 }
 

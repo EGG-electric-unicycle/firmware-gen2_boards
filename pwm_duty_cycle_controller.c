@@ -413,8 +413,11 @@ void apply_duty_cycle (int duty_cycle_value)
   }
 
   // apply minimum duty_cycle value
-//  int temp1 = 1000 - MOTOR_MIN_DUTYCYCLE;
-//  _duty_cycle = ((_duty_cycle * temp1) + MOTOR_MIN_DUTYCYCLE) / 1000;
+  int temp1 = 1000 - MOTOR_MIN_DUTYCYCLE;
+  _duty_cycle = MOTOR_MIN_DUTYCYCLE + (((_duty_cycle * temp1) + MOTOR_MIN_DUTYCYCLE) / 1000);
+
+  if (_duty_cycle > 1000) _duty_cycle = 1000;
+  if (_duty_cycle < 0) _duty_cycle = 0;
 
   // scale and apply _duty_cycle
   int temp;
