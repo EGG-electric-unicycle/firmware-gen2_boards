@@ -63,7 +63,6 @@ float IMU_get_angle_error (void)
   static unsigned int micros_old = 0;
   float current_angle_error = 0;
 
-//GPIO_SetBits(BUZZER__PORT, BUZZER__PIN);
   // read the accel and gyro sensor values
   MPU6050_GetRawAccelGyroTemp (accel_gyro_temp);
 

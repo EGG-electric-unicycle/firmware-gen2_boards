@@ -30,30 +30,32 @@ void balance_controller(void)
   float dt;
   float temp;
 
-//  angle_error = IMU_get_angle_error ();
+  angle_error = IMU_get_angle_error ();
 
-  duty_cycle_f = qfp_fmul(angle_error, 33.3); // MAX angle 30; 30*33.3 = 1000
-//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
+  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
 
-//  // calc dt, using micro seconds value
-//  micros_new = micros ();
-//  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
-//  micros_old = micros_new;
-//
-//  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
-//  angle_error_old = angle_error;
-//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
+  // calc dt, using micro seconds value
+  micros_new = micros ();
+  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
+  micros_old = micros_new;
+
+  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
+  angle_error_old = angle_error;
+  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
 
   // limit value
-  if (duty_cycle_f > 1000) { duty_cycle_f = 1000; }
-  if (duty_cycle_f < -999) { duty_cycle_f = -999; }
+//  if (duty_cycle_f > 1000) { duty_cycle_f = 1000; }
+//  if (duty_cycle_f < -999) { duty_cycle_f = -999; }
+
+  if (duty_cycle_f > 500) { duty_cycle_f = 500; }
+  if (duty_cycle_f < -500) { duty_cycle_f = -500; }
 
 
-  // EUC_ORIENTATION
+// PWM_INPUT
 #define PWM_INPUT_BALANCE_CONTROLLER 	0
 #define PWM_INPUT_POTENTIOMETER		1
 #define PWM_INPUT_FIXED_VALUE		2
-#define PWM_INPUT PWM_INPUT_POTENTIOMETER
+#define PWM_INPUT PWM_INPUT_BALANCE_CONTROLLER
 
 #if PWM_INPUT == PWM_INPUT_POTENTIOMETER
   unsigned int duty_cycle_value;
