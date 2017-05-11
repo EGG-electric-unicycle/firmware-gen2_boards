@@ -43,43 +43,43 @@ void balance_controller(void)
   static float i_error = 0;
   float d_term = 0;
   float d_error = 0;
-
-  // calc dt, using micro seconds value
-  micros_new = micros ();
-  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
-
-  p_term = qfp_fmul(kp, angle_error);
-
-  // Anti-windup
-//  if(abs_f(duty_cycle_f) >= 999 && (((angle_error >= 0) && (i_error >= 0)) || ((angle_error < 0) && (i_error < 0))))
-//  {
-//    i_error = i_error;
-//  }
-//  else
-//  {
-    i_error = qfp_fadd(i_error, qfp_fmul(angle_error, dt));
-//  }
-
-  i_term = qfp_fmul(ki, i_error);
-
-  d_error = qfp_fdiv(qfp_fsub(angle_error, angle_error_old), dt);
-  angle_error_old = angle_error;
-  d_term = qfp_fmul(kd, d_error);
-
-  duty_cycle_f = qfp_fadd(qfp_fadd(p_term, i_term), d_term);
-
-  ////////////////////////////
-
-//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KI_BALANCE_CONTROLLER, angle_error));
 //
 //  // calc dt, using micro seconds value
 //  micros_new = micros ();
 //  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
-//  micros_old = micros_new;
 //
-//  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
+//  p_term = qfp_fmul(kp, angle_error);
+//
+//  // Anti-windup
+////  if(abs_f(duty_cycle_f) >= 999 && (((angle_error >= 0) && (i_error >= 0)) || ((angle_error < 0) && (i_error < 0))))
+////  {
+////    i_error = i_error;
+////  }
+////  else
+////  {
+//    i_error = qfp_fadd(i_error, qfp_fmul(angle_error, dt));
+////  }
+//
+//  i_term = qfp_fmul(ki, i_error);
+//
+//  d_error = qfp_fdiv(qfp_fsub(angle_error, angle_error_old), dt);
 //  angle_error_old = angle_error;
-//  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(KD_BALANCE_CONTROLLER, temp));
+//  d_term = qfp_fmul(kd, d_error);
+//
+//  duty_cycle_f = qfp_fadd(qfp_fadd(p_term, i_term), d_term);
+
+  ////////////////////////////
+
+  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(ki, angle_error));
+
+  // calc dt, using micro seconds value
+  micros_new = micros ();
+  dt = qfp_fdiv((float) (micros_new - micros_old), 1000000.0);
+  micros_old = micros_new;
+
+  temp = qfp_fmul(qfp_fsub(angle_error, angle_error_old), dt);
+  angle_error_old = angle_error;
+  duty_cycle_f = qfp_fadd(duty_cycle_f, qfp_fmul(kd, temp));
 
 
   ////////////////////////////
