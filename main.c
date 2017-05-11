@@ -100,7 +100,8 @@ int main(void)
 //    FOC_slow_loop ();
 
     int number_bytes_readed;
-    number_bytes_readed = scanf("%s", &buffer);
+    float number;
+    number_bytes_readed = scanf("%f", &number);
 
     if (number_bytes_readed > 0)
     {
@@ -109,7 +110,7 @@ int main(void)
 	case 'p':
 
 //	  printf("p = ");
-	  printf("%s", &buffer);
+	  printf("%d", &number);
 //	  printf("p = ");
 	  break;
 
