@@ -21,10 +21,11 @@
 #include "stm32f10x.h"
 #include "stdio.h"
 #include "imu.h"
+
+#include "../motor_foc.h"
 #include "math.h"
 #include "MPU6050/MPU6050.h"
 #include "qfplib-m3.h"
-#include "motor.h"
 #include "main.h"
 
 // X axis gives the front/rear inclination of the wheel

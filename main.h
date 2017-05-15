@@ -9,11 +9,6 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
-// Constants
-#define ONE_BY_SQRT3			(0.57735026919)
-#define TWO_BY_SQRT3			(2.0f * 0.57735026919)
-#define SQRT3_BY_2				(0.86602540378)
-
 // Define for the NVIC IRQChannel Preemption Priority
 // lower number has higher priority
 #define ADC_ANALOG_WATCHDOG_PRIORITY		0
@@ -48,9 +43,11 @@
 // -4.7A | 1.65V
 // about 12.7mv for each 1A
 
-#define ADC_CURRENT_OFFSET		2131 // represents 1.71V when current = 0
-#define ADC_CURRENT_GAIN_MILLIAMPS      (0.0190 * 1000) // original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
-#define ADC_BATTERY_VOLTAGE_GAIN_VOLTS	0.0215
+#define ADC_CURRENT_OFFSET			2131 // represents 1.71V when current = 0
+#define ADC_CURRENT_GAIN_MILLIAMPS      	(0.0190 * 1000) // original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
+#define ADC_BATTERY_VOLTAGE_GAIN_VOLTS		0.0215
+#define ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT	ADC_CURRENT_OFFSET + (MOTOR_MAX_CURRENT / ADC_CURRENT_GAIN_MILLIAMPS)
+#define ADC_MOTOR_OVER_CURRENT_NEGATIVE_LIMIT	ADC_CURRENT_OFFSET - (MOTOR_MAX_CURRENT / ADC_CURRENT_GAIN_MILLIAMPS)
 
 // VESC Lizardmech
 //#define MOTOR_R		0.20653
@@ -69,6 +66,10 @@
 #define MOTOR_TYPE_EUC2 			1
 #define MOTOR_TYPE_MICROWORKS_500W_30KMH 	2 // works well only rotating to left
 #define MOTOR_TYPE MOTOR_TYPE_EUC2
+#define MOTOR_OVER_CURRENT			4 // 25 Amps
+#define MOTOR_MAX_CURRENT			2.5 * 1000.0 // motor max current (mA)
+#define MOTOR_MAX_CURRENT_STEP			4 // step value for incrementing/decrementing
+
 
 // define the motor rotor delta phase advance over the hall sensors signal
 // value must be [0 --> 59]
@@ -89,7 +90,6 @@
 
 #define MOTOR_MIN_DUTYCYCLE 5
 
-#define MOTOR_MAX_CURRENT	1000 // Define max motor current in mA
 #define MOTOR_MAX_SPEED 	20000 // meter per hour
 //#define MOTOR_MIN_SPEED 	5000 // meter per hour -- walking speed is 5km/h
 #define MOTOR_MIN_SPEED 	0 // meter per hour -- walking speed is 5km/h
@@ -105,10 +105,5 @@ extern unsigned int log_enable;
 
 extern unsigned int machine_state;
 void delay_ms (unsigned int ms);
-void printDouble(double v, int decimalDigits);
-int mod_angle_degrees (int a);
-float abs_f (float value);
-
-
 
 #endif /* _MAIN_H_ */

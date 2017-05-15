@@ -6,8 +6,8 @@
  * Released under the GPL License, Version 3
  */
 
-#ifndef _MOTOR_H
-#define _MOTOR_H
+#ifndef _MOTOR_FOC_H
+#define _MOTOR_FOC_H
 
 // direction of motor movement
 #define RIGHT 		1
@@ -39,7 +39,9 @@ extern volatile int adc_phase_c_current;
 extern volatile int adc_phase_a_current_offset;
 extern volatile int adc_phase_c_current_offset;
 
+extern volatile int motor_max_current_factor;
+
 void hall_sensors_interrupt (void);
 void motor_calc_current_dc_offset (void);
 
-#endif /* _MOTOR_H_ */
+#endif /* _MOTOR_FOC_H_ */

@@ -13,8 +13,8 @@
 #include "main.h"
 #include "gpio.h"
 #include "pwm.h"
-#include "motor.h"
 #include "pwm_duty_cycle_controller.h"
+#include "motor_foc.h"
 
 // Space Vector Modulation PWMs values, please read this blog message:
 // http://www.berryjam.eu/2015/04/driving-bldc-gimbals-at-super-slow-speeds-with-arduino/
@@ -412,10 +412,15 @@ void apply_duty_cycle (int duty_cycle_value)
     hall_sensors_read_and_action ();
   }
 
+  // apply over current limit factor
+  _duty_cycle *=  motor_max_current_factor;
+  _duty_cycle /=  1000;
+
   // apply minimum duty_cycle value
   int temp1 = 1000 - MOTOR_MIN_DUTYCYCLE;
   _duty_cycle = MOTOR_MIN_DUTYCYCLE + (((_duty_cycle * temp1) + MOTOR_MIN_DUTYCYCLE) / 1000);
 
+  // apply limits
   if (_duty_cycle > 1000) _duty_cycle = 1000;
   if (_duty_cycle < 0) _duty_cycle = 0;
 
@@ -486,19 +491,15 @@ void apply_duty_cycle (int duty_cycle_value)
 // run at each PWM period = 50us
 void pwm_duty_cycle_controller (void)
 {
+  // limit PWM increase/decrease rate
   static unsigned int counter;
-
   if (counter++ > PWM_DUTY_CYCLE_CONTROLLER_COUNTER)
   {
     counter = 0;
 
     // increment or decrement duty_cycle
-    if (duty_cycle_target > duty_cycle) { duty_cycle++;  }
+    if (duty_cycle_target > duty_cycle) { duty_cycle++; }
     else if (duty_cycle_target < duty_cycle) { duty_cycle--; }
-
-    // limit duty_cycle
-    if (duty_cycle > 1000) { duty_cycle = 1000; }
-    if (duty_cycle < -999) { duty_cycle = -999; }
   }
 
   apply_duty_cycle (duty_cycle);

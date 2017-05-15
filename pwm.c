@@ -13,7 +13,8 @@
 #include "main.h"
 #include "gpio.h"
 #include "pwm.h"
-#include "motor.h"
+
+#include "motor_foc.h"
 
 unsigned int TIM_DirMode(TIM_TypeDef* TIMx)
 {
@@ -146,6 +147,21 @@ void enable_phase_b (void)
 void enable_phase_c (void)
 {
   GPIO_SetBits (PHASE_C_SHUTDOWN__PORT, PHASE_C_SHUTDOWN__PIN);
+}
+
+void disable_phase_a (void)
+{
+  GPIO_ResetBits (PHASE_A_SHUTDOWN__PORT, PHASE_A_SHUTDOWN__PIN);
+}
+
+void disable_phase_b (void)
+{
+  GPIO_ResetBits (PHASE_B_SHUTDOWN__PORT, PHASE_B_SHUTDOWN__PIN);
+}
+
+void disable_phase_c (void)
+{
+  GPIO_ResetBits (PHASE_C_SHUTDOWN__PORT, PHASE_C_SHUTDOWN__PIN);
 }
 
 void set_pwm_phase_a (unsigned int value)

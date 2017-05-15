@@ -14,10 +14,10 @@
 #include "gpio.h"
 #include "timer.h"
 #include "pwm.h"
-#include "motor.h"
 #include "IMU/imu.h"
 #include "qfplib-m3.h"
 #include "balance_controller.h"
+#include "motor_foc.h"
 
 float kp = 0;
 float ki = 0;
@@ -85,15 +85,15 @@ void balance_controller(void)
   ////////////////////////////
 
   // limit value -- max values [-999; 1000]
-  if (duty_cycle_f > 500) { duty_cycle_f = 500; }
-  if (duty_cycle_f < -500) { duty_cycle_f = -500; }
+  if (duty_cycle_f >= 1000) { duty_cycle_f = 1000; }
+  if (duty_cycle_f < -999) { duty_cycle_f = -999; }
 
 
 // PWM_INPUT
 #define PWM_INPUT_BALANCE_CONTROLLER 	0
 #define PWM_INPUT_POTENTIOMETER		1
 #define PWM_INPUT_FIXED_VALUE		2
-#define PWM_INPUT PWM_INPUT_BALANCE_CONTROLLER
+#define PWM_INPUT PWM_INPUT_POTENTIOMETER
 
 #if PWM_INPUT == PWM_INPUT_POTENTIOMETER
   unsigned int duty_cycle_value;

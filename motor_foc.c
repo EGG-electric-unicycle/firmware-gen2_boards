@@ -6,6 +6,8 @@
  * Released under the GPL License, Version 3
  */
 
+#include "motor_foc.h"
+
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
 #include "stdio.h"
@@ -13,10 +15,10 @@
 #include "adc.h"
 #include "gpio.h"
 #include "pwm.h"
-#include "motor.h"
 #include "qfplib-m3.h"
 #include "math.h"
 #include "main.h"
+#include "utils.h"
 #include "filter.h"
 #include "IMU/imu.h"
 #include "pwm_duty_cycle_controller.h"
@@ -37,11 +39,32 @@ volatile int adc_phase_b_current = 0;
 volatile int adc_phase_c_current = 0;
 
 volatile int adc_phase_a_current1 = 0;
+volatile int adc_phase_b_current1 = 0;
 volatile int adc_phase_c_current1 = 0;
 volatile int adc_phase_current1_cycles = 0;
 
 volatile int adc_phase_a_current_offset;
 volatile int adc_phase_c_current_offset;
+
+volatile int motor_max_current_factor = 1000; // 1000 -> 100%
+volatile unsigned int over_current_fault_counter = 0;
+
+void motor_over_current_action (void)
+{
+  // disable PWM / motor!!
+  disable_phase_a ();
+  disable_phase_b ();
+  disable_phase_c ();
+
+  // infinite loop with buzzer signal
+  while (1) ;
+  {
+    buzzer_on ();
+    delay_ms (750);
+    buzzer_off ();
+    delay_ms (250);
+  }
+}
 
 // runs every 1ms
 void FOC_slow_loop (void)
@@ -53,6 +76,7 @@ void FOC_slow_loop (void)
   __disable_irq();
   adc_phase_a_current = adc_phase_a_current1;
   adc_phase_a_current1 = 0;
+  adc_phase_b_current1 = 0;
   adc_phase_c_current = adc_phase_c_current1;
   adc_phase_c_current1 = 0;
   int temp_adc_phase_current1_cycles = adc_phase_current1_cycles;
@@ -162,6 +186,24 @@ void FOC_slow_loop (void)
   position_correction_value = (int) correction_value;
   // ------------------------------------------------------------------------
 
+  // Max current controller
+  //------------------------------------------------------------------------
+  if (abs_f(iq) > MOTOR_MAX_CURRENT) // start limitting the current
+  {
+    if (motor_max_current_factor > 0)
+    {
+      motor_max_current_factor -= MOTOR_MAX_CURRENT_STEP;
+    }
+  }
+  else
+  {
+    if (motor_max_current_factor < 1000)
+    {
+      motor_max_current_factor += MOTOR_MAX_CURRENT_STEP;
+    }
+  }
+  // ------------------------------------------------------------------------
+
   static unsigned int loop_timer1 = 0;
   loop_timer1++;
   if (loop_timer1 > 1)
@@ -180,18 +222,19 @@ void FOC_slow_loop (void)
     if (get_motor_rotation_direction() == LEFT) { motor_speed *= -1; }
 
       // balance controller debug
-    if (log_enable)
-    {
-      printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
-    }
-    else
-    {
-      printf ("%d, %f, %f, %f\n", duty_cycle, kp, ki, kd);
-    }
+//    if (log_enable)
+//    {
+//      printf ("%.2f, %d, %d\n", angle_error_log, duty_cycle, motor_speed);
+//    }
+//    else
+//    {
+//      printf ("%d, %f, %f, %f\n", duty_cycle, kp, ki, kd);
+//    }
+
 //    printf ("%d, %d, %.2f, %.2f\n", motor_speed, duty_cycle, angle_log, angle_error_log);
 
       // motor FOC debug
-//    printf ("%.2f, %.2f, %.2f, %d, %d\n", id, iq, correction_value, motor_speed, duty_cycle);
+    printf ("%.2f, %.2f, %.2f, %d, %d\n", id, iq, correction_value, motor_speed, duty_cycle);
   }
 }
 
@@ -211,7 +254,7 @@ void FOC_fast_loop (void)
     interpolation_sum = 0;
   }
 
-#define DO_INTERPOLATION 1
+#define DO_INTERPOLATION 1 // may be usefull when debugging
 #if DO_INTERPOLATION == 1
   // calculate the interpolation angle
   // interpolation seems a problem when motor starts, so avoid to do it at very low speed
@@ -240,6 +283,28 @@ void FOC_fast_loop (void)
   // measure raw currents A and C and filter
   adc_phase_a_current1 += (int) adc_get_phase_a_current_value ();
   adc_phase_c_current1 += (int) adc_get_phase_c_current_value ();
+  adc_phase_b_current1 += -adc_phase_a_current - adc_phase_c_current;
+
+  // Verify if motor over current and action
+  //------------------------------------------------------------------------
+//  if (
+//      ((adc_phase_a_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
+//      ((adc_phase_b_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
+//      ((adc_phase_c_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
+//      ((adc_phase_a_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
+//      ((adc_phase_b_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
+//      ((adc_phase_c_current1 / adc_phase_current1_cycles) < ADC_MOTOR_OVER_CURRENT_NEGATIVE_LIMIT))
+//  {
+//    over_current_fault_counter += 10;
+//
+//    if (over_current_fault_counter > 1000) { motor_over_current_action(); }
+//  }
+//  else
+//  {
+//    if (over_current_fault_counter > 0) { over_current_fault_counter -= 1; }
+//  }
+  //------------------------------------------------------------------------
+
   adc_phase_current1_cycles++;
 }
 

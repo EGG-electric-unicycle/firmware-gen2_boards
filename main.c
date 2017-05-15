@@ -18,30 +18,14 @@
 #include "stm32f10x_tim.h"
 #include "timer.h"
 #include "adc.h"
-#include "motor.h"
 #include "usart.h"
 #include "IMU/imu.h"
 #include "balance_controller.h"
+#include "motor_foc.h"
 
 static volatile unsigned int _ms;
 
 unsigned int log_enable = 0;
-
-int mod_angle_degrees (int a)
-{
-  int ret = a % 360;
-  if(ret < 0)
-    ret += 360;
-  return ret;
-}
-
-float abs_f (float value)
-{
-  if (value < 0)
-    return qfp_fmul(value, -1.0);
-  else
-    return value;
-}
 
 void delay_ms (unsigned int ms)
 {
@@ -87,9 +71,9 @@ int main(void)
 
   // don't start until the potentiometer is on the middle value --> PWM ~= 0
   unsigned int duty_cycle_value;
-//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
-//      duty_cycle_value > 1880) ;
-  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
+  while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
+      duty_cycle_value > 1880) ;
+//  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
 
   motor_calc_current_dc_offset ();
 
