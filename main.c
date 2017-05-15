@@ -52,6 +52,7 @@ void initialize (void)
   IMU_init ();
   TIM2_init ();
   adc_init ();
+  motor_calc_current_dc_offset ();
 //  TIM4_init ();
   buzzer_init ();
   usart1_bluetooth_init ();
@@ -74,8 +75,6 @@ int main(void)
   while ((duty_cycle_value = adc_get_potentiometer_value()) < 1720 ||
       duty_cycle_value > 1880) ;
 //  while ((duty_cycle_value = adc_get_potentiometer_value()) < 500) ;
-
-  motor_calc_current_dc_offset ();
 
   set_pwm_duty_cycle (0);
   enable_phase_a ();

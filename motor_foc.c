@@ -39,7 +39,6 @@ volatile int adc_phase_b_current = 0;
 volatile int adc_phase_c_current = 0;
 
 volatile int adc_phase_a_current1 = 0;
-volatile int adc_phase_b_current1 = 0;
 volatile int adc_phase_c_current1 = 0;
 volatile int adc_phase_current1_cycles = 0;
 
@@ -56,14 +55,10 @@ void motor_over_current_action (void)
   disable_phase_b ();
   disable_phase_c ();
 
-  // infinite loop with buzzer signal
+  buzzer_on ();
+
+  // infinite loop: block here, user will need to reset the system
   while (1) ;
-  {
-    buzzer_on ();
-    delay_ms (750);
-    buzzer_off ();
-    delay_ms (250);
-  }
 }
 
 // runs every 1ms
@@ -76,7 +71,6 @@ void FOC_slow_loop (void)
   __disable_irq();
   adc_phase_a_current = adc_phase_a_current1;
   adc_phase_a_current1 = 0;
-  adc_phase_b_current1 = 0;
   adc_phase_c_current = adc_phase_c_current1;
   adc_phase_c_current1 = 0;
   int temp_adc_phase_current1_cycles = adc_phase_current1_cycles;
@@ -93,8 +87,7 @@ void FOC_slow_loop (void)
 
 
   /* Calc phase B current assuming balanced currents
-   * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c
-   */
+   * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c */
 #if MOTOR_TYPE == MOTOR_TYPE_EUC1
   adc_phase_b_current = -adc_phase_a_current - adc_phase_c_current;
 #elif MOTOR_TYPE == MOTOR_TYPE_EUC2
@@ -281,31 +274,47 @@ void FOC_fast_loop (void)
   pwm_duty_cycle_controller ();
 
   // measure raw currents A and C and filter
-  adc_phase_a_current1 += (int) adc_get_phase_a_current_value ();
-  adc_phase_c_current1 += (int) adc_get_phase_c_current_value ();
-  adc_phase_b_current1 += -adc_phase_a_current - adc_phase_c_current;
-
-  // Verify if motor over current and action
-  //------------------------------------------------------------------------
-//  if (
-//      ((adc_phase_a_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
-//      ((adc_phase_b_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
-//      ((adc_phase_c_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
-//      ((adc_phase_a_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
-//      ((adc_phase_b_current1 / adc_phase_current1_cycles) > ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT) ||
-//      ((adc_phase_c_current1 / adc_phase_current1_cycles) < ADC_MOTOR_OVER_CURRENT_NEGATIVE_LIMIT))
-//  {
-//    over_current_fault_counter += 10;
-//
-//    if (over_current_fault_counter > 1000) { motor_over_current_action(); }
-//  }
-//  else
-//  {
-//    if (over_current_fault_counter > 0) { over_current_fault_counter -= 1; }
-//  }
-  //------------------------------------------------------------------------
-
+  int _adc_phase_a_current = (int) adc_get_phase_a_current_value ();
+  int _adc_phase_c_current = (int) adc_get_phase_c_current_value ();
+  adc_phase_a_current1 += _adc_phase_a_current;
+  adc_phase_c_current1 += _adc_phase_c_current;
   adc_phase_current1_cycles++;
+
+  // verify motor over current
+  //------------------------------------------------------------------------
+  _adc_phase_a_current -= adc_phase_a_current_offset;
+  int _adc_phase_b_current;
+  _adc_phase_c_current -= adc_phase_c_current_offset;
+
+  /* Calc phase B current assuming balanced currents
+   * considering: a + b + c = 0 ; a + c = -b ; b = -(a + c) ; b = -a -c */
+#if MOTOR_TYPE == MOTOR_TYPE_EUC1
+  _adc_phase_b_current = -_adc_phase_a_current - _adc_phase_c_current;
+#elif MOTOR_TYPE == MOTOR_TYPE_EUC2
+  // change currents as for this motor, the phases are: BAC and not ABC
+  _adc_phase_b_current = _adc_phase_a_current;
+  _adc_phase_a_current = -_adc_phase_b_current - _adc_phase_c_current;
+#elif MOTOR_TYPE == MOTOR_TYPE_MICROWORKS_500W_30KMH
+  _adc_phase_b_current = _adc_phase_c_current;
+  _adc_phase_c_current = _adc_phase_a_current;
+  _adc_phase_a_current = -_adc_phase_b_current -_adc_phase_c_current;
+#endif
+
+  if (
+      (abs(_adc_phase_a_current) > ADC_MOTOR_OVER_CURRENT_LIMIT) ||
+      (abs(_adc_phase_b_current) > ADC_MOTOR_OVER_CURRENT_LIMIT) ||
+      (abs(_adc_phase_c_current) > ADC_MOTOR_OVER_CURRENT_LIMIT))
+  {
+    over_current_fault_counter += 10;
+
+    if (over_current_fault_counter > 1000) { motor_over_current_action(); }
+  }
+  else
+  {
+    if (over_current_fault_counter > 0) { over_current_fault_counter -= 1; }
+  }
+  //------------------------------------------------------------------------
+
 }
 
 // calc the DC offset value for the current ADCs

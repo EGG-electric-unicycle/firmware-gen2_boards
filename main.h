@@ -46,8 +46,7 @@
 #define ADC_CURRENT_OFFSET			2131 // represents 1.71V when current = 0
 #define ADC_CURRENT_GAIN_MILLIAMPS      	(0.0190 * 1000) // original estimated value of 0.0634 but verified to be instead 3.33 less, in 2017.03.17.
 #define ADC_BATTERY_VOLTAGE_GAIN_VOLTS		0.0215
-#define ADC_MOTOR_OVER_CURRENT_POSITIVE_LIMIT	ADC_CURRENT_OFFSET + (MOTOR_MAX_CURRENT / ADC_CURRENT_GAIN_MILLIAMPS)
-#define ADC_MOTOR_OVER_CURRENT_NEGATIVE_LIMIT	ADC_CURRENT_OFFSET - (MOTOR_MAX_CURRENT / ADC_CURRENT_GAIN_MILLIAMPS)
+#define ADC_MOTOR_OVER_CURRENT_LIMIT		MOTOR_OVER_CURRENT / ADC_CURRENT_GAIN_MILLIAMPS
 
 // VESC Lizardmech
 //#define MOTOR_R		0.20653
@@ -66,8 +65,8 @@
 #define MOTOR_TYPE_EUC2 			1
 #define MOTOR_TYPE_MICROWORKS_500W_30KMH 	2 // works well only rotating to left
 #define MOTOR_TYPE MOTOR_TYPE_EUC2
-#define MOTOR_OVER_CURRENT			4 // 25 Amps
-#define MOTOR_MAX_CURRENT			2.5 * 1000.0 // motor max current (mA)
+#define MOTOR_OVER_CURRENT			25.0 * 1000.0 // 25 Amps
+#define MOTOR_MAX_CURRENT			4.0 * 1000.0 // motor max current (mA)
 #define MOTOR_MAX_CURRENT_STEP			4 // step value for incrementing/decrementing
 
 
