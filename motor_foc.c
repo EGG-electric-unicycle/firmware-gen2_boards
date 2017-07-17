@@ -247,7 +247,8 @@ void FOC_fast_loop (void)
     interpolation_sum = 0;
   }
 
-#define DO_INTERPOLATION 1 // may be usefull when debugging
+#define DO_INTERPOLATION 1 // may be usefull to disable interpolation when debugging
+  // You can read more after "Initial Motivation: Can the Synchronous Current Regulator be modified to work with Hall effect sensor inputs, with interpolation?" from Shane Colton documentation: https://eggelectricunicycle.bitbucket.io/EmbeddedFiles/19-SCquals.pdf
 #if DO_INTERPOLATION == 1
   // calculate the interpolation angle
   // interpolation seems a problem when motor starts, so avoid to do it at very low speed

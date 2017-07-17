@@ -417,6 +417,7 @@ void apply_duty_cycle (int duty_cycle_value)
   _duty_cycle /=  1000;
 
   // apply minimum duty_cycle value
+  // I found that there are a minimum duty_cycle value after the motor start to move, like if there is a gap with low values. This code is to remove that gap and I expect it to improve the quick motor direction change rotation that I think is important for the balance of EUC.
   int temp1 = 1000 - MOTOR_MIN_DUTYCYCLE;
   _duty_cycle = MOTOR_MIN_DUTYCYCLE + (((_duty_cycle * temp1) + MOTOR_MIN_DUTYCYCLE) / 1000);
 
